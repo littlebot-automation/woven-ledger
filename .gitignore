@@ -17,3 +17,8 @@ local.properties
 var/
 .env.local
 .env.*.local
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
