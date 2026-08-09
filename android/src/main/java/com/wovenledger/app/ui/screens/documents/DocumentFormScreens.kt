@@ -119,8 +119,25 @@ abstract class DocumentFormViewModel(
     private val _form = MutableStateFlow(DocumentForm())
     val form: StateFlow<DocumentForm> = _form.asStateFlow()
 
-    /** Customers buy and suppliers sell, so each form offers only its own side. */
+    /**
+     * Every party, with the side the document normally deals with listed first.
+     *
+     * A sales invoice usually goes to a customer and a bill usually comes from a
+     * supplier, but the portal does not forbid the other way round and neither does
+     * this: a party can be both, and relationships change. Ordering keeps the common
+     * case at the top without ruling the uncommon one out.
+     */
     abstract val partyChoices: StateFlow<List<Party>>
+
+    /** Puts [expected] and BOTH parties first, then the rest, each alphabetical. */
+    protected fun preferring(expected: PartyType): StateFlow<List<Party>> = allParties
+        .map { all ->
+            val (usual, others) = all.partition {
+                it.type == expected || it.type == PartyType.BOTH
+            }
+            usual.sortedBy { it.name } + others.sortedBy { it.name }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     protected val allParties: StateFlow<List<Party>> = parties.getAll()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -332,9 +349,7 @@ class SalesInvoiceFormViewModel @Inject constructor(
     gson: Gson,
 ) : DocumentFormViewModel(gson, parties, items, plants, savedStateHandle.get<Long>("invoiceId")) {
 
-    override val partyChoices: StateFlow<List<Party>> = allParties
-        .map { all -> all.filter { it.type != PartyType.SUPPLIER } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    override val partyChoices: StateFlow<List<Party>> = preferring(PartyType.CUSTOMER)
 
     init {
         prefill()
@@ -403,9 +418,7 @@ class PurchaseBillFormViewModel @Inject constructor(
     gson: Gson,
 ) : DocumentFormViewModel(gson, parties, items, plants, savedStateHandle.get<Long>("billId")) {
 
-    override val partyChoices: StateFlow<List<Party>> = allParties
-        .map { all -> all.filter { it.type != PartyType.CUSTOMER } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    override val partyChoices: StateFlow<List<Party>> = preferring(PartyType.SUPPLIER)
 
     init {
         prefill()
