@@ -87,4 +87,37 @@ class DocumentPersister
 
         $this->stockManager->applySnapshot($snapshot, -self::SALES_APPLY);
     }
+
+    public function createPurchaseBill(PurchaseBill $bill): void
+    {
+        $this->stockManager->normalise($bill);
+        $bill->setNo($this->documentNumbers->consume(DocumentNumberService::PURCHASE));
+
+        $this->em->persist($bill);
+        $this->em->flush();
+
+        $this->stockManager->applySnapshot($this->snapshotOf($bill), self::PURCHASE_APPLY);
+    }
+
+    /**
+     * @param array{plantId: int|null, lines: array<int, array{itemId: int, qty: float}>} $storedSnapshot
+     */
+    public function updatePurchaseBill(PurchaseBill $bill, array $storedSnapshot): void
+    {
+        $this->stockManager->normalise($bill);
+        $this->em->flush();
+
+        $this->stockManager->applySnapshot($storedSnapshot, -self::PURCHASE_APPLY);
+        $this->stockManager->applySnapshot($this->snapshotOf($bill), self::PURCHASE_APPLY);
+    }
+
+    public function deletePurchaseBill(PurchaseBill $bill): void
+    {
+        $snapshot = $this->snapshotOf($bill);
+
+        $this->em->remove($bill);
+        $this->em->flush();
+
+        $this->stockManager->applySnapshot($snapshot, -self::PURCHASE_APPLY);
+    }
 }
