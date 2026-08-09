@@ -99,4 +99,17 @@ class DocumentPersisterTest extends DomainTestCase
 
         $this->assertSame('SI-0001', $invoice->getNo());
     }
+
+    public function testDeletingASalesInvoiceReturnsItsStock(): void
+    {
+        $this->seedStock($this->fabric, $this->plantA, 500.0);
+
+        $invoice = $this->salesInvoiceFor(100.0);
+        $this->persister()->createSalesInvoice($invoice);
+        $this->assertSame(400.0, $this->stockOf($this->fabric, $this->plantA));
+
+        $this->persister()->deleteSalesInvoice($invoice);
+
+        $this->assertSame(500.0, $this->stockOf($this->fabric, $this->plantA));
+    }
 }

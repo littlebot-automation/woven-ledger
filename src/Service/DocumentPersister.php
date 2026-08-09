@@ -76,4 +76,15 @@ class DocumentPersister
 
         return $warnings;
     }
+
+    public function deleteSalesInvoice(SalesInvoice $invoice): void
+    {
+        // Freeze before removal: once the entity is gone its lines are unreadable.
+        $snapshot = $this->snapshotOf($invoice);
+
+        $this->em->remove($invoice);
+        $this->em->flush();
+
+        $this->stockManager->applySnapshot($snapshot, -self::SALES_APPLY);
+    }
 }
