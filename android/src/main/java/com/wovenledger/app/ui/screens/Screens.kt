@@ -65,15 +65,6 @@ fun PaymentCreateScreen(navController: NavHostController) {
 
 // Staff, staff work and work entry now live in ui/screens/staff/.
 
-// ================================================================ Settings & reports
-@Composable
-fun SettingsScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Settings",
-        description = "Company settings aren't exposed by the API yet.",
-        navController = navController
-    )
-}
 
 // ================================================================ Placeholder
 @Composable
