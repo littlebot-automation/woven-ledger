@@ -6,10 +6,10 @@ namespace App\Controller\Admin;
 
 use App\Entity\PurchaseBill;
 use App\Form\PurchaseBillLineType;
-use App\Service\DocumentNumberService;
-use App\Service\DocumentStockManager;
+use App\Service\DocumentPersister;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
@@ -19,6 +19,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Mirror of {@see SalesInvoiceCrudController}, with the stock signs inverted and
@@ -30,8 +31,7 @@ class PurchaseBillCrudController extends AbstractCrudController
     private array $storedSnapshot = ['plantId' => null, 'lines' => []];
 
     public function __construct(
-        private readonly DocumentStockManager $stockManager,
-        private readonly DocumentNumberService $documentNumbers,
+        private readonly DocumentPersister $documentPersister,
     ) {
     }
 
@@ -54,19 +54,18 @@ class PurchaseBillCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield FormField::addPanel('Bill');
+        yield FormField::addFieldset('Bill');
 
         yield TextField::new('no', 'Bill No')
             ->setFormTypeOption('disabled', true)
             ->setRequired(false)
-            ->addCssClass('mono')
             ->setHelp('Assigned automatically on save');
 
         yield DateField::new('date', 'Date');
         yield AssociationField::new('party', 'Supplier')->autocomplete();
         yield AssociationField::new('plant', 'Plant');
 
-        yield FormField::addPanel('Line Items')->onlyOnForms();
+        yield FormField::addFieldset('Line Items')->onlyOnForms();
 
         yield CollectionField::new('lines', 'Items')
             ->setEntryType(PurchaseBillLineType::class)
@@ -75,10 +74,9 @@ class PurchaseBillCrudController extends AbstractCrudController
             ->setEntryIsComplex()
             ->renderExpanded()
             ->onlyOnForms()
-            ->setFormTypeOption('by_reference', false)
-            ->addCssClass('wl-line-items');
+            ->setFormTypeOption('by_reference', false);
 
-        yield FormField::addPanel('Totals')->onlyOnForms();
+        yield FormField::addFieldset('Totals')->onlyOnForms();
 
         yield MoneyField::new('subtotal', 'Subtotal')
             ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2)
@@ -93,18 +91,17 @@ class PurchaseBillCrudController extends AbstractCrudController
         yield MoneyField::new('total', 'Total')
             ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2)
             ->setFormTypeOption('disabled', true)
-            ->setRequired(false)
-            ->addCssClass('mono');
+            ->setRequired(false);
 
         yield TextareaField::new('notes', 'Notes')->hideOnIndex();
     }
 
-    public function edit(AdminContext $context)
+    public function edit(AdminContext $context): KeyValueStore|Response
     {
         $bill = $context->getEntity()->getInstance();
 
         if ($bill instanceof PurchaseBill) {
-            $this->storedSnapshot = $this->stockManager->snapshot($bill->getLines(), $bill->getPlant());
+            $this->storedSnapshot = $this->documentPersister->snapshotOf($bill);
         }
 
         return parent::edit($context);
@@ -118,15 +115,7 @@ class PurchaseBillCrudController extends AbstractCrudController
             return;
         }
 
-        $this->stockManager->normalise($entityInstance);
-        $entityInstance->setNo($this->documentNumbers->consume(DocumentNumberService::PURCHASE));
-
-        parent::persistEntity($em, $entityInstance);
-
-        $this->stockManager->applySnapshot(
-            $this->stockManager->snapshot($entityInstance->getLines(), $entityInstance->getPlant()),
-            +1,
-        );
+        $this->documentPersister->createPurchaseBill($entityInstance);
     }
 
     public function updateEntity(EntityManagerInterface $em, $entityInstance): void
@@ -137,27 +126,17 @@ class PurchaseBillCrudController extends AbstractCrudController
             return;
         }
 
-        $this->stockManager->normalise($entityInstance);
-
-        parent::updateEntity($em, $entityInstance);
-
-        $this->stockManager->applySnapshot($this->storedSnapshot, -1);
-        $this->stockManager->applySnapshot(
-            $this->stockManager->snapshot($entityInstance->getLines(), $entityInstance->getPlant()),
-            +1,
-        );
+        $this->documentPersister->updatePurchaseBill($entityInstance, $this->storedSnapshot);
     }
 
     public function deleteEntity(EntityManagerInterface $em, $entityInstance): void
     {
-        if ($entityInstance instanceof PurchaseBill) {
-            $snapshot = $this->stockManager->snapshot($entityInstance->getLines(), $entityInstance->getPlant());
+        if (!$entityInstance instanceof PurchaseBill) {
             parent::deleteEntity($em, $entityInstance);
-            $this->stockManager->applySnapshot($snapshot, -1);
 
             return;
         }
 
-        parent::deleteEntity($em, $entityInstance);
+        $this->documentPersister->deletePurchaseBill($entityInstance);
     }
 }

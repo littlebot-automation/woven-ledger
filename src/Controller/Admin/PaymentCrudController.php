@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\Payment;
-use App\Service\DocumentNumberService;
+use App\Service\DocumentPersister;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
@@ -19,7 +19,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 class PaymentCrudController extends AbstractCrudController
 {
     public function __construct(
-        private readonly DocumentNumberService $documentNumbers,
+        private readonly DocumentPersister $documentPersister,
     ) {
     }
 
@@ -45,7 +45,6 @@ class PaymentCrudController extends AbstractCrudController
         yield TextField::new('no', 'Voucher No')
             ->setFormTypeOption('disabled', true)
             ->setRequired(false)
-            ->addCssClass('mono')
             ->setHelp('Assigned automatically on save');
 
         yield DateField::new('date', 'Date');
@@ -71,8 +70,7 @@ class PaymentCrudController extends AbstractCrudController
             ->formatValue(static fn ($v, Payment $p): string => $p->getPayeeName());
 
         yield MoneyField::new('amount', 'Amount')
-            ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2)
-            ->addCssClass('mono');
+            ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2);
 
         yield ChoiceField::new('mode', 'Mode')->setChoices(Payment::MODES);
         yield TextareaField::new('notes', 'Notes')->hideOnIndex();
@@ -80,15 +78,18 @@ class PaymentCrudController extends AbstractCrudController
 
     public function persistEntity(EntityManagerInterface $em, $entityInstance): void
     {
-        if ($entityInstance instanceof Payment) {
-            if (!$this->normalisePayee($entityInstance)) {
-                return;
-            }
+        if (!$entityInstance instanceof Payment) {
+            parent::persistEntity($em, $entityInstance);
 
-            $entityInstance->setNo($this->documentNumbers->consume(DocumentNumberService::PAYMENT));
+            return;
         }
 
-        parent::persistEntity($em, $entityInstance);
+        // An unresolved payee aborts the save, exactly as before.
+        if (!$this->normalisePayee($entityInstance)) {
+            return;
+        }
+
+        $this->documentPersister->createPayment($entityInstance);
     }
 
     public function updateEntity(EntityManagerInterface $em, $entityInstance): void

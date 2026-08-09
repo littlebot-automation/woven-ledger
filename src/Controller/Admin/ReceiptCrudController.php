@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\Receipt;
-use App\Service\DocumentNumberService;
+use App\Service\DocumentPersister;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
@@ -19,7 +19,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 class ReceiptCrudController extends AbstractCrudController
 {
     public function __construct(
-        private readonly DocumentNumberService $documentNumbers,
+        private readonly DocumentPersister $documentPersister,
     ) {
     }
 
@@ -45,15 +45,13 @@ class ReceiptCrudController extends AbstractCrudController
         yield TextField::new('no', 'Voucher No')
             ->setFormTypeOption('disabled', true)
             ->setRequired(false)
-            ->addCssClass('mono')
             ->setHelp('Assigned automatically on save');
 
         yield DateField::new('date', 'Date');
         yield AssociationField::new('party', 'Received From')->autocomplete();
 
         yield MoneyField::new('amount', 'Amount')
-            ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2)
-            ->addCssClass('mono');
+            ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2);
 
         yield ChoiceField::new('mode', 'Mode')->setChoices(Receipt::MODES);
         yield TextareaField::new('notes', 'Notes')->hideOnIndex();
@@ -61,10 +59,12 @@ class ReceiptCrudController extends AbstractCrudController
 
     public function persistEntity(EntityManagerInterface $em, $entityInstance): void
     {
-        if ($entityInstance instanceof Receipt) {
-            $entityInstance->setNo($this->documentNumbers->consume(DocumentNumberService::RECEIPT));
+        if (!$entityInstance instanceof Receipt) {
+            parent::persistEntity($em, $entityInstance);
+
+            return;
         }
 
-        parent::persistEntity($em, $entityInstance);
+        $this->documentPersister->createReceipt($entityInstance);
     }
 }
