@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -50,6 +51,7 @@ private data class MoreEntry(
  */
 private val ENTRIES = listOf(
     MoreEntry("Items", "Raw materials and finished goods", Icons.Filled.Inventory2, NavigationRoutes.ITEMS_LIST),
+    MoreEntry("Stock", "Plant-wise quantities and low stock", Icons.Filled.Warehouse, NavigationRoutes.STOCK),
     MoreEntry("Staff", "Workers and their wage rates", Icons.Filled.Badge, NavigationRoutes.STAFF_LIST),
     MoreEntry("Daily staff work", "Work entries and unpaid wages", Icons.Filled.Work, NavigationRoutes.STAFF_WORK_LIST),
     MoreEntry("Purchase bills", "What we bought", Icons.Filled.ShoppingCart, NavigationRoutes.PURCHASE_BILLS_LIST),

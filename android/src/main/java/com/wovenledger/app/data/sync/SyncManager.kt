@@ -3,6 +3,7 @@ package com.wovenledger.app.data.sync
 import android.util.Log
 import com.wovenledger.app.data.entities.Plant
 import com.wovenledger.app.data.repository.ItemRepository
+import com.wovenledger.app.data.repository.ItemStockRepository
 import com.wovenledger.app.data.repository.PartyRepository
 import com.wovenledger.app.data.repository.PaymentRepository
 import com.wovenledger.app.data.repository.PlantRepository
@@ -41,6 +42,7 @@ sealed interface SyncState {
 @Singleton
 class SyncManager @Inject constructor(
     private val plantRepository: PlantRepository,
+    private val itemStockRepository: ItemStockRepository,
     private val partyRepository: PartyRepository,
     private val itemRepository: ItemRepository,
     private val salesInvoiceRepository: SalesInvoiceRepository,
@@ -65,8 +67,17 @@ class SyncManager @Inject constructor(
         scope.launch { sync() }
     }
 
-    /** Document sync assigns every invoice and bill to plant 1, so that row must exist. */
-    private suspend fun ensureDefaultPlant() = plantRepository.ensureExists(DEFAULT_PLANT_ID)
+    /**
+     * Pulls the real plants, then guarantees plant 1 exists regardless.
+     *
+     * Document sync assigns every invoice and bill to plant 1, so if the server has no
+     * plant with that id the documents would fail their foreign key. The placeholder is
+     * a floor, not a substitute — a synced plant carries its real name.
+     */
+    private suspend fun syncPlants() {
+        plantRepository.syncFromApi()
+        plantRepository.ensureExists(DEFAULT_PLANT_ID)
+    }
 
     /**
      * Runs every entity sync, each independently: one failing endpoint must not stop
@@ -76,16 +87,23 @@ class SyncManager @Inject constructor(
     suspend fun sync(): SyncState {
         _state.value = SyncState.Syncing
 
+        // Order is a foreign-key constraint, not a preference: plants and items must
+        // land before the rows that point at them, and stock points at both.
         val steps = listOf<Pair<String, suspend () -> Unit>>(
-            "plants" to ::ensureDefaultPlant,
+            // Masters first, then the records that point at them.
+            "plants" to ::syncPlants,
             "parties" to partyRepository::syncFromApi,
             "items" to itemRepository::syncFromApi,
+            // Staff precedes payments: a wage voucher carries a staff_id, so the staff
+            // row has to exist or the payment insert fails its foreign key.
+            "staff" to staffRepository::syncFromApi,
             "sales invoices" to salesInvoiceRepository::syncFromApi,
             "purchase bills" to purchaseBillRepository::syncFromApi,
             "payments" to paymentRepository::syncFromApi,
             "receipts" to receiptRepository::syncFromApi,
-            "staff" to staffRepository::syncFromApi,
             "staff work" to staffWorkRepository::syncFromApi,
+            // Stock points at both items and plants.
+            "stock" to itemStockRepository::syncFromApi,
         )
 
         val failures = steps.mapNotNull { (name, run) ->
