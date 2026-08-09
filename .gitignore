@@ -1,10 +1,38 @@
+# Build artifacts
+android/build/
+android/.gradle/
+android/.idea/
+*.apk
+*.aab
+*.o
+*.so
+*.dll
 
-###> symfony/framework-bundle ###
-/.env.local
-/.env.local.php
-/.env.*.local
-/config/secrets/prod/prod.decrypt.private.php
-/public/bundles/
-/var/
-/vendor/
-###< symfony/framework-bundle ###
+# Gradle
+.gradle/
+build/
+gradle.properties
+local.properties
+
+# Symfony
+var/
+.env.local
+.env.*.local
+node_modules/
+public/assets/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies
+vendor/
+node_modules/
+
+# Caches
+.cache/
+*.log
