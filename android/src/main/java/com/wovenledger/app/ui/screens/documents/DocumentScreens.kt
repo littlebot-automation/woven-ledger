@@ -1,0 +1,335 @@
+package com.wovenledger.app.ui.screens.documents
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavHostController
+import com.wovenledger.app.data.entities.Party
+import com.wovenledger.app.data.entities.Payment
+import com.wovenledger.app.data.entities.PurchaseBill
+import com.wovenledger.app.data.entities.SalesInvoice
+import com.wovenledger.app.data.repository.PartyRepository
+import com.wovenledger.app.data.repository.PaymentRepository
+import com.wovenledger.app.data.repository.PurchaseBillRepository
+import com.wovenledger.app.data.repository.SalesInvoiceRepository
+import com.wovenledger.app.ui.components.AmountRow
+import com.wovenledger.app.ui.components.DocumentList
+import com.wovenledger.app.ui.components.DocumentSummary
+import com.wovenledger.app.ui.components.EmptyState
+import com.wovenledger.app.ui.components.formatDate
+import com.wovenledger.app.ui.navigation.NavigationRoutes
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import java.time.LocalDate
+import javax.inject.Inject
+
+/** Party names are shown on every document row, so each list needs the lookup. */
+private fun namesById(parties: List<Party>): Map<Long, String> =
+    parties.associate { it.id to it.name }
+
+private fun subtitle(date: LocalDate, partyName: String?): String =
+    listOfNotNull(formatDate(date), partyName).joinToString(" · ")
+
+// ------------------------------------------------------------------ Sales invoices
+
+@HiltViewModel
+class SalesInvoicesViewModel @Inject constructor(
+    invoices: SalesInvoiceRepository,
+    parties: PartyRepository,
+) : ViewModel() {
+
+    val documents: StateFlow<List<DocumentSummary>> =
+        combine(invoices.getAll(), parties.getAll()) { all, allParties ->
+            val names = namesById(allParties)
+            all.map {
+                DocumentSummary(it.id, it.no, subtitle(it.date, names[it.partyId]), it.total)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+}
+
+@Composable
+fun SalesInvoicesListScreen(navController: NavHostController) {
+    val viewModel: SalesInvoicesViewModel = hiltViewModel()
+    val documents by viewModel.documents.collectAsStateWithLifecycle()
+
+    DocumentList(
+        documents = documents,
+        emptyMessage = "No sales invoices yet.",
+        onOpen = { navController.navigate("${NavigationRoutes.SALES_INVOICE_DETAIL_BASE}/$it") },
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@HiltViewModel
+class SalesInvoiceDetailViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    invoices: SalesInvoiceRepository,
+    parties: PartyRepository,
+) : ViewModel() {
+
+    private val invoiceId: Long = savedStateHandle.get<Long>("invoiceId") ?: 0L
+
+    val invoice: StateFlow<SalesInvoice?> = invoices.read(invoiceId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val partyName: StateFlow<String?> =
+        combine(invoices.read(invoiceId), parties.getAll()) { invoice, allParties ->
+            invoice?.let { namesById(allParties)[it.partyId] }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+}
+
+@Composable
+fun SalesInvoiceDetailScreen(navController: NavHostController, invoiceId: Long) {
+    val viewModel: SalesInvoiceDetailViewModel = hiltViewModel()
+    val invoice by viewModel.invoice.collectAsStateWithLifecycle()
+    val partyName by viewModel.partyName.collectAsStateWithLifecycle()
+
+    val current = invoice
+    if (current == null) {
+        EmptyState("That invoice isn't in the local copy yet.")
+        return
+    }
+
+    DocumentDetailBody(
+        number = current.no,
+        date = current.date,
+        partyName = partyName,
+        subtotal = current.subtotal,
+        discount = current.discount,
+        total = current.total,
+    )
+}
+
+// ------------------------------------------------------------------ Purchase bills
+
+@HiltViewModel
+class PurchaseBillsViewModel @Inject constructor(
+    bills: PurchaseBillRepository,
+    parties: PartyRepository,
+) : ViewModel() {
+
+    val documents: StateFlow<List<DocumentSummary>> =
+        combine(bills.getAll(), parties.getAll()) { all, allParties ->
+            val names = namesById(allParties)
+            all.map {
+                DocumentSummary(it.id, it.no, subtitle(it.date, names[it.partyId]), it.total)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+}
+
+@Composable
+fun PurchaseBillsListScreen(navController: NavHostController) {
+    val viewModel: PurchaseBillsViewModel = hiltViewModel()
+    val documents by viewModel.documents.collectAsStateWithLifecycle()
+
+    DocumentList(
+        documents = documents,
+        emptyMessage = "No purchase bills yet.",
+        onOpen = { navController.navigate("${NavigationRoutes.PURCHASE_BILL_DETAIL_BASE}/$it") },
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@HiltViewModel
+class PurchaseBillDetailViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    bills: PurchaseBillRepository,
+    parties: PartyRepository,
+) : ViewModel() {
+
+    private val billId: Long = savedStateHandle.get<Long>("billId") ?: 0L
+
+    val bill: StateFlow<PurchaseBill?> = bills.read(billId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val partyName: StateFlow<String?> =
+        combine(bills.read(billId), parties.getAll()) { bill, allParties ->
+            bill?.let { namesById(allParties)[it.partyId] }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+}
+
+@Composable
+fun PurchaseBillDetailScreen(navController: NavHostController, billId: Long) {
+    val viewModel: PurchaseBillDetailViewModel = hiltViewModel()
+    val bill by viewModel.bill.collectAsStateWithLifecycle()
+    val partyName by viewModel.partyName.collectAsStateWithLifecycle()
+
+    val current = bill
+    if (current == null) {
+        EmptyState("That bill isn't in the local copy yet.")
+        return
+    }
+
+    DocumentDetailBody(
+        number = current.no,
+        date = current.date,
+        partyName = partyName,
+        subtotal = current.subtotal,
+        discount = current.discount,
+        total = current.total,
+    )
+}
+
+// ------------------------------------------------------------------ Payments
+
+@HiltViewModel
+class PaymentsViewModel @Inject constructor(
+    payments: PaymentRepository,
+    parties: PartyRepository,
+) : ViewModel() {
+
+    val documents: StateFlow<List<DocumentSummary>> =
+        combine(payments.getAll(), parties.getAll()) { all, allParties ->
+            val names = namesById(allParties)
+            all.map {
+                DocumentSummary(
+                    id = it.id,
+                    number = it.no,
+                    subtitle = subtitle(it.date, it.partyId?.let(names::get)),
+                    amount = it.amount,
+                )
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+}
+
+@Composable
+fun PaymentsListScreen(navController: NavHostController) {
+    val viewModel: PaymentsViewModel = hiltViewModel()
+    val documents by viewModel.documents.collectAsStateWithLifecycle()
+
+    DocumentList(
+        documents = documents,
+        emptyMessage = "No payments yet.",
+        onOpen = { navController.navigate("${NavigationRoutes.PAYMENT_DETAIL_BASE}/$it") },
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@HiltViewModel
+class PaymentDetailViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    payments: PaymentRepository,
+    parties: PartyRepository,
+) : ViewModel() {
+
+    private val paymentId: Long = savedStateHandle.get<Long>("paymentId") ?: 0L
+
+    val payment: StateFlow<Payment?> = payments.read(paymentId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val partyName: StateFlow<String?> =
+        combine(payments.read(paymentId), parties.getAll()) { payment, allParties ->
+            payment?.partyId?.let { namesById(allParties)[it] }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+}
+
+@Composable
+fun PaymentDetailScreen(navController: NavHostController, paymentId: Long) {
+    val viewModel: PaymentDetailViewModel = hiltViewModel()
+    val payment by viewModel.payment.collectAsStateWithLifecycle()
+    val partyName by viewModel.partyName.collectAsStateWithLifecycle()
+
+    val current = payment
+    if (current == null) {
+        EmptyState("That payment isn't in the local copy yet.")
+        return
+    }
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        DocumentHeader(current.no, current.date, partyName)
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                AmountRow("Amount", current.amount, emphasis = true)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                LabelledText("Mode", current.mode.name.lowercase().replace('_', ' '))
+                LabelledText("Type", current.type.name.lowercase())
+                if (current.notes.isNotBlank()) LabelledText("Notes", current.notes)
+            }
+        }
+    }
+}
+
+// ------------------------------------------------------------------ Shared
+
+@Composable
+private fun DocumentDetailBody(
+    number: String,
+    date: LocalDate,
+    partyName: String?,
+    subtotal: Long,
+    discount: Long,
+    total: Long,
+) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        DocumentHeader(number, date, partyName)
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                AmountRow("Subtotal", subtotal)
+                if (discount != 0L) AmountRow("Discount", discount)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                AmountRow("Total", total, emphasis = true)
+            }
+        }
+
+        Text(
+            text = "Line items arrive with the document endpoint.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+    }
+}
+
+@Composable
+private fun DocumentHeader(number: String, date: LocalDate, partyName: String?) {
+    Column {
+        Text(number, style = MaterialTheme.typography.headlineSmall)
+        Text(
+            text = subtitle(date, partyName),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun LabelledText(label: String, value: String) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(value, style = MaterialTheme.typography.bodyMedium)
+    }
+}

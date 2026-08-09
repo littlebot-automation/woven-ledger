@@ -97,6 +97,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
+    // Provides collectAsStateWithLifecycle, so flows stop collecting when the UI stops.
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.2")
     implementation("androidx.activity:activity-compose:1.9.0")
 
     // Room Database
@@ -109,6 +111,16 @@ dependencies {
     kapt("com.google.dagger:hilt-compiler:2.52")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     implementation("androidx.hilt:hilt-work:1.2.0")
+    // hilt-work 1.2.0 resolves work-runtime 2.3.4, which crashes on API 31+
+    // (PendingIntent without FLAG_IMMUTABLE in ForceStopRunnable). minSdk is 31.
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Retrofit & OkHttp for API
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.google.code.gson:gson:2.11.0")
 
     // Testing Dependencies
     testImplementation("junit:junit:4.13.2")

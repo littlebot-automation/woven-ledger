@@ -1,7 +1,13 @@
 package com.wovenledger.app.ui.screens
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -9,97 +15,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 
-// ================================================================ Dashboard
-@Composable
-fun DashboardScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Dashboard",
-        description = "Overview and key metrics",
-        navController = navController
-    )
-}
+/**
+ * Screens still awaiting their backing API.
+ *
+ * Dashboard, parties, items, sales invoices, purchase bills and payments have real
+ * implementations under their own packages. What remains here needs endpoints that
+ * do not exist yet (receipts, staff, staff work, settings) or write support (the
+ * create forms), and each says so rather than pretending to be finished.
+ */
 
-// ================================================================ Parties
-@Composable
-fun PartiesListScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Parties",
-        description = "Customers and Suppliers"
-    )
-}
-
-@Composable
-fun PartyDetailScreen(navController: NavHostController, partyId: Long) {
-    ScreenPlaceholder(
-        title = "Party Detail",
-        description = "Party ID: $partyId"
-    )
-}
-
-// ================================================================ Items
-@Composable
-fun ItemsListScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Items",
-        description = "Raw materials and finished goods"
-    )
-}
-
-@Composable
-fun ItemDetailScreen(navController: NavHostController, itemId: Long) {
-    ScreenPlaceholder(
-        title = "Item Detail",
-        description = "Item ID: $itemId"
-    )
-}
-
-// ================================================================ Sales Invoices
-@Composable
-fun SalesInvoicesListScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Sales Invoices",
-        description = "View all sales invoices"
-    )
-}
-
-@Composable
-fun SalesInvoiceDetailScreen(navController: NavHostController, invoiceId: Long) {
-    ScreenPlaceholder(
-        title = "Sales Invoice",
-        description = "Invoice ID: $invoiceId"
-    )
-}
-
+// ================================================================ Sales / purchase creation
 @Composable
 fun SalesInvoiceCreateScreen(navController: NavHostController) {
     ScreenPlaceholder(
-        title = "Create Sales Invoice",
-        description = "New invoice"
-    )
-}
-
-// ================================================================ Purchase Bills
-@Composable
-fun PurchaseBillsListScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Purchase Bills",
-        description = "View all purchase bills"
-    )
-}
-
-@Composable
-fun PurchaseBillDetailScreen(navController: NavHostController, billId: Long) {
-    ScreenPlaceholder(
-        title = "Purchase Bill",
-        description = "Bill ID: $billId"
+        title = "New sales invoice",
+        description = "Creating invoices needs the write API.",
+        navController = navController
     )
 }
 
 @Composable
 fun PurchaseBillCreateScreen(navController: NavHostController) {
     ScreenPlaceholder(
-        title = "Create Purchase Bill",
-        description = "New bill"
+        title = "New purchase bill",
+        description = "Creating bills needs the write API.",
+        navController = navController
     )
 }
 
@@ -108,7 +48,8 @@ fun PurchaseBillCreateScreen(navController: NavHostController) {
 fun ReceiptsListScreen(navController: NavHostController) {
     ScreenPlaceholder(
         title = "Receipts",
-        description = "View all receipts"
+        description = "Receipts aren't exposed by the API yet.",
+        navController = navController
     )
 }
 
@@ -116,40 +57,27 @@ fun ReceiptsListScreen(navController: NavHostController) {
 fun ReceiptDetailScreen(navController: NavHostController, receiptId: Long) {
     ScreenPlaceholder(
         title = "Receipt",
-        description = "Receipt ID: $receiptId"
+        description = "Receipts aren't exposed by the API yet.",
+        navController = navController
     )
 }
 
 @Composable
 fun ReceiptCreateScreen(navController: NavHostController) {
     ScreenPlaceholder(
-        title = "Create Receipt",
-        description = "New receipt"
+        title = "New receipt",
+        description = "Creating receipts needs the write API.",
+        navController = navController
     )
 }
 
-// ================================================================ Payments
-@Composable
-fun PaymentsListScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Payments",
-        description = "View all payments"
-    )
-}
-
-@Composable
-fun PaymentDetailScreen(navController: NavHostController, paymentId: Long) {
-    ScreenPlaceholder(
-        title = "Payment",
-        description = "Payment ID: $paymentId"
-    )
-}
-
+// ================================================================ Payments creation
 @Composable
 fun PaymentCreateScreen(navController: NavHostController) {
     ScreenPlaceholder(
-        title = "Create Payment",
-        description = "New payment"
+        title = "New payment",
+        description = "Creating payments needs the write API.",
+        navController = navController
     )
 }
 
@@ -158,50 +86,54 @@ fun PaymentCreateScreen(navController: NavHostController) {
 fun StaffListScreen(navController: NavHostController) {
     ScreenPlaceholder(
         title = "Staff",
-        description = "View all staff members"
+        description = "Staff aren't exposed by the API yet.",
+        navController = navController
     )
 }
 
 @Composable
 fun StaffDetailScreen(navController: NavHostController, staffId: Long) {
     ScreenPlaceholder(
-        title = "Staff Detail",
-        description = "Staff ID: $staffId"
+        title = "Staff member",
+        description = "Staff aren't exposed by the API yet.",
+        navController = navController
     )
 }
 
-// ================================================================ Staff Work
 @Composable
 fun StaffWorkListScreen(navController: NavHostController) {
     ScreenPlaceholder(
-        title = "Staff Work & Wages",
-        description = "Daily work and wage settlement"
+        title = "Staff work & wages",
+        description = "Staff work isn't exposed by the API yet.",
+        navController = navController
     )
 }
 
 @Composable
 fun StaffWorkCreateScreen(navController: NavHostController) {
     ScreenPlaceholder(
-        title = "Record Staff Work",
-        description = "New work entry"
+        title = "Record staff work",
+        description = "Recording work needs the write API.",
+        navController = navController
     )
 }
 
-// ================================================================ Settings
+// ================================================================ Settings & reports
 @Composable
 fun SettingsScreen(navController: NavHostController) {
     ScreenPlaceholder(
         title = "Settings",
-        description = "Company settings and preferences"
+        description = "Company settings aren't exposed by the API yet.",
+        navController = navController
     )
 }
 
-// ================================================================ Reports
 @Composable
 fun ReportsScreen(navController: NavHostController) {
     ScreenPlaceholder(
-        title = "Reports & Analytics",
-        description = "Financial reports and analytics"
+        title = "Reports",
+        description = "The six reports come once staff and stock data sync.",
+        navController = navController
     )
 }
 
@@ -221,19 +153,15 @@ fun ScreenPlaceholder(
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = description,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(32.dp))
-        Button(onClick = { navController?.popBackStack() }) {
-            Text("Back")
-        }
     }
 }

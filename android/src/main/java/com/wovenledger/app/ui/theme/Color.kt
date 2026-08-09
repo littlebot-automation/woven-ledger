@@ -2,45 +2,44 @@ package com.wovenledger.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Material Design 3 Colors
-val md_theme_light_primary = Color(0xFF006A60)
-val md_theme_light_onPrimary = Color(0xFFFFFFFF)
-val md_theme_light_primaryContainer = Color(0xFF76F8EB)
-val md_theme_light_onPrimaryContainer = Color(0xFF00201B)
-val md_theme_light_secondary = Color(0xFF006A60)
-val md_theme_light_onSecondary = Color(0xFFFFFFFF)
-val md_theme_light_secondaryContainer = Color(0xFF9CF1E8)
-val md_theme_light_onSecondaryContainer = Color(0xFF00201B)
-val md_theme_light_tertiary = Color(0xFF006A60)
-val md_theme_light_onTertiary = Color(0xFFFFFFFF)
-val md_theme_light_tertiaryContainer = Color(0xFF9CF1E8)
-val md_theme_light_onTertiaryContainer = Color(0xFF00201B)
-val md_theme_light_error = Color(0xFFB3261E)
-val md_theme_light_errorContainer = Color(0xFFF9DEDC)
-val md_theme_light_onError = Color(0xFFFFFFFF)
-val md_theme_light_onErrorContainer = Color(0xFF410E0B)
-val md_theme_light_background = Color(0xFFFBFDFC)
-val md_theme_light_onBackground = Color(0xFF191C1B)
-val md_theme_light_surface = Color(0xFFFBFDFC)
-val md_theme_light_onSurface = Color(0xFF191C1B)
+/**
+ * Brand palette, taken from the design tokens in docs/SPEC.md §8 so the app reads
+ * as the same product as the web portal.
+ *
+ * The portal is a warm-paper surface with a deep navy chrome and an amber accent —
+ * deliberately not a stock Material palette.
+ */
 
-val md_theme_dark_primary = Color(0xFF4FD8CE)
-val md_theme_dark_onPrimary = Color(0xFF003731)
-val md_theme_dark_primaryContainer = Color(0xFF005047)
-val md_theme_dark_onPrimaryContainer = Color(0xFF76F8EB)
-val md_theme_dark_secondary = Color(0xFF4FD8CE)
-val md_theme_dark_onSecondary = Color(0xFF003731)
-val md_theme_dark_secondaryContainer = Color(0xFF005047)
-val md_theme_dark_onSecondaryContainer = Color(0xFF76F8EB)
-val md_theme_dark_tertiary = Color(0xFF4FD8CE)
-val md_theme_dark_onTertiary = Color(0xFF003731)
-val md_theme_dark_tertiaryContainer = Color(0xFF005047)
-val md_theme_dark_onTertiaryContainer = Color(0xFF76F8EB)
-val md_theme_dark_error = Color(0xFFF2B8B5)
-val md_theme_dark_errorContainer = Color(0xFF8C1D18)
-val md_theme_dark_onError = Color(0xFF601410)
-val md_theme_dark_onErrorContainer = Color(0xFFF9DEDC)
-val md_theme_dark_background = Color(0xFF191C1B)
-val md_theme_dark_onBackground = Color(0xFFE1F3F1)
-val md_theme_dark_surface = Color(0xFF191C1B)
-val md_theme_dark_onSurface = Color(0xFFE1F3F1)
+// Core brand
+val WovenNavy = Color(0xFF1D3557)
+val WovenNavyDark = Color(0xFF142238)
+val WovenNavyTint = Color(0xFFE7ECF3)
+
+val WovenAmber = Color(0xFFC97A2B)
+val WovenAmberTint = Color(0xFFF7E7D4)
+
+// Surfaces
+val WovenPaper = Color(0xFFF5F2EA)
+val WovenSurface = Color(0xFFFFFFFF)
+val WovenBorder = Color(0xFFE3DDCE)
+val WovenBorderSoft = Color(0xFFEDE8DC)
+
+// Ink
+val WovenInk = Color(0xFF20242B)
+val WovenInkSoft = Color(0xFF565F6B)
+
+// Status
+val WovenSuccess = Color(0xFF2A9D4A)
+val WovenSuccessTint = Color(0xFFE3F5E8)
+val WovenDanger = Color(0xFFC0392B)
+val WovenDangerTint = Color(0xFFFBE8E5)
+
+// Dark-theme counterparts. The portal has no dark mode, so these are derived:
+// the navy becomes the surface and the amber carries the accent, keeping the
+// brand recognisable rather than inventing a second identity.
+val WovenDarkBackground = Color(0xFF11161F)
+val WovenDarkSurface = Color(0xFF1A2130)
+val WovenDarkInk = Color(0xFFE8EAEE)
+val WovenDarkInkSoft = Color(0xFFA7B0BE)
+val WovenNavyLight = Color(0xFF8FB0DA)
+val WovenAmberLight = Color(0xFFE9A868)

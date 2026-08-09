@@ -1,14 +1,20 @@
 package com.wovenledger.app.data.repository
 
+import com.wovenledger.app.data.api.WovenLedgerApiService
 import com.wovenledger.app.data.dao.ItemDao
 import com.wovenledger.app.data.entities.Item
+import com.wovenledger.app.data.entities.ItemType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ItemRepository @Inject constructor(private val dao: ItemDao) {
+class ItemRepository @Inject constructor(
+    private val dao: ItemDao,
+    private val api: WovenLedgerApiService
+) {
 
     suspend fun create(item: Item): Long = dao.insert(item)
 
@@ -31,4 +37,25 @@ class ItemRepository @Inject constructor(private val dao: ItemDao) {
     }
 
     fun findRecent(): Flow<List<Item>> = dao.getAllItems()
+
+    /** Throws on failure so [com.wovenledger.app.data.sync.SyncManager] can report it. */
+    suspend fun syncFromApi() {
+        val apiItems = api.getItems()
+        apiItems.forEach { dto ->
+            val item = Item(
+                id = dto.id.toLong(),
+                name = dto.name,
+                type = ItemType.valueOf(dto.type.uppercase()),
+                unit = dto.unit,
+                defaultRate = dto.defaultRate, // already paise
+                hsn = dto.hsnCode ?: ""
+            )
+            val existing = dao.getItem(item.id).first()
+            if (existing == null) {
+                dao.insert(item)
+            } else {
+                dao.update(item)
+            }
+        }
+    }
 }
