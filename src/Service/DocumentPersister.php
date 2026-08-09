@@ -52,4 +52,28 @@ class DocumentPersister
 
         return $warnings;
     }
+
+    /**
+     * @param array{plantId: int|null, lines: array<int, array{itemId: int, qty: float}>} $storedSnapshot
+     *                                                                                                   taken before the caller mutated the document
+     *
+     * @return string[]
+     */
+    public function updateSalesInvoice(SalesInvoice $invoice, array $storedSnapshot): array
+    {
+        $this->stockManager->normalise($invoice);
+        $this->em->flush();
+
+        $warnings = $this->stockManager->salesWarnings(
+            $invoice->getLines(),
+            $invoice->getPlant(),
+            $storedSnapshot,
+        );
+
+        // Undo the stored effect at the stored plant, then apply the new one.
+        $this->stockManager->applySnapshot($storedSnapshot, -self::SALES_APPLY);
+        $this->stockManager->applySnapshot($this->snapshotOf($invoice), self::SALES_APPLY);
+
+        return $warnings;
+    }
 }
