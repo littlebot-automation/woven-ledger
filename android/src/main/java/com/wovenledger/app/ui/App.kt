@@ -40,10 +40,6 @@ import com.wovenledger.app.ui.screens.ReceiptsListScreen
 import com.wovenledger.app.ui.screens.ReportsScreen
 import com.wovenledger.app.ui.screens.SalesInvoiceCreateScreen
 import com.wovenledger.app.ui.screens.SettingsScreen
-import com.wovenledger.app.ui.screens.StaffDetailScreen
-import com.wovenledger.app.ui.screens.StaffListScreen
-import com.wovenledger.app.ui.screens.StaffWorkCreateScreen
-import com.wovenledger.app.ui.screens.StaffWorkListScreen
 import com.wovenledger.app.ui.screens.dashboard.DashboardScreen
 import com.wovenledger.app.ui.screens.documents.PaymentDetailScreen
 import com.wovenledger.app.ui.screens.documents.PaymentsListScreen
@@ -56,6 +52,10 @@ import com.wovenledger.app.ui.screens.items.ItemsListScreen
 import com.wovenledger.app.ui.screens.more.MoreScreen
 import com.wovenledger.app.ui.screens.parties.PartiesListScreen
 import com.wovenledger.app.ui.screens.parties.PartyDetailScreen
+import com.wovenledger.app.ui.screens.staff.StaffDetailScreen
+import com.wovenledger.app.ui.screens.staff.StaffListScreen
+import com.wovenledger.app.ui.screens.staff.StaffWorkCreateScreen
+import com.wovenledger.app.ui.screens.staff.StaffWorkListScreen
 
 private data class Destination(
     val route: String,

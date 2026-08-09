@@ -81,42 +81,7 @@ fun PaymentCreateScreen(navController: NavHostController) {
     )
 }
 
-// ================================================================ Staff
-@Composable
-fun StaffListScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Staff",
-        description = "Staff aren't exposed by the API yet.",
-        navController = navController
-    )
-}
-
-@Composable
-fun StaffDetailScreen(navController: NavHostController, staffId: Long) {
-    ScreenPlaceholder(
-        title = "Staff member",
-        description = "Staff aren't exposed by the API yet.",
-        navController = navController
-    )
-}
-
-@Composable
-fun StaffWorkListScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Staff work & wages",
-        description = "Staff work isn't exposed by the API yet.",
-        navController = navController
-    )
-}
-
-@Composable
-fun StaffWorkCreateScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Record staff work",
-        description = "Recording work needs the write API.",
-        navController = navController
-    )
-}
+// Staff, staff work and work entry now live in ui/screens/staff/.
 
 // ================================================================ Settings & reports
 @Composable

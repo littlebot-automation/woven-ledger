@@ -8,6 +8,8 @@ import com.wovenledger.app.data.repository.PaymentRepository
 import com.wovenledger.app.data.repository.PlantRepository
 import com.wovenledger.app.data.repository.PurchaseBillRepository
 import com.wovenledger.app.data.repository.SalesInvoiceRepository
+import com.wovenledger.app.data.repository.StaffRepository
+import com.wovenledger.app.data.repository.StaffWorkRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,7 +44,9 @@ class SyncManager @Inject constructor(
     private val itemRepository: ItemRepository,
     private val salesInvoiceRepository: SalesInvoiceRepository,
     private val purchaseBillRepository: PurchaseBillRepository,
-    private val paymentRepository: PaymentRepository
+    private val paymentRepository: PaymentRepository,
+    private val staffRepository: StaffRepository,
+    private val staffWorkRepository: StaffWorkRepository
 ) {
     private companion object {
         const val TAG = "WovenLedgerSync"
@@ -88,6 +92,8 @@ class SyncManager @Inject constructor(
             "sales invoices" to salesInvoiceRepository::syncFromApi,
             "purchase bills" to purchaseBillRepository::syncFromApi,
             "payments" to paymentRepository::syncFromApi,
+            "staff" to staffRepository::syncFromApi,
+            "staff work" to staffWorkRepository::syncFromApi,
         )
 
         val failures = steps.mapNotNull { (name, run) ->
