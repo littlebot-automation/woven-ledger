@@ -47,32 +47,80 @@ class StaffWorkApiController extends AbstractController
     /**
      * Records a day's work. The app posts this online and waits for the answer —
      * there is no offline queue — so the response is the created resource.
-     *
-     * `paid` is deliberately not accepted: only wage settlement may set it.
      */
     #[Route('', name: 'api_staff_work_create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
-        $body = json_decode($request->getContent(), true);
+        $body = $this->decodeBody($request);
 
-        if (!\is_array($body)) {
-            return $this->json(['errors' => ['body' => 'Expected a JSON object']], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+        if (null === $body) {
+            return $this->malformedBody();
         }
 
+        $entry = new StaffWork();
+        $errors = $this->bind($entry, $body);
+
+        if ([] !== $errors) {
+            return $this->invalid($errors);
+        }
+
+        $this->em->persist($entry);
+        $this->em->flush();
+
+        return $this->json($this->payload($entry), JsonResponse::HTTP_CREATED);
+    }
+
+    /**
+     * Corrects an entry that was recorded wrong.
+     *
+     * A settled entry is left alone: its amount is already inside a wage payment,
+     * and changing it here would make that voucher disagree with the work it paid
+     * for.
+     */
+    #[Route('/{id}', name: 'api_staff_work_update', requirements: ['id' => '\d+'], methods: ['PUT'])]
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $entry = $this->staffWork->find($id);
+
+        if (null === $entry) {
+            return $this->notFound('Staff work');
+        }
+
+        if ($entry->isPaid()) {
+            return $this->invalid(['paid' => 'This entry has already been settled and can no longer be edited']);
+        }
+
+        $body = $this->decodeBody($request);
+
+        if (null === $body) {
+            return $this->malformedBody();
+        }
+
+        $errors = $this->bind($entry, $body);
+
+        if ([] !== $errors) {
+            return $this->invalid($errors);
+        }
+
+        $this->em->flush();
+
+        return $this->json($this->payload($entry));
+    }
+
+    /**
+     * Fills the entity from the request.
+     *
+     * `paid` is deliberately not accepted: only wage settlement may set it.
+     *
+     * @param array<string, mixed> $body
+     *
+     * @return array<string, string>
+     */
+    private function bind(StaffWork $entry, array $body): array
+    {
         $errors = [];
 
-        $date = null;
-        $rawDate = $body['date'] ?? null;
-        if (null === $rawDate || '' === $rawDate) {
-            $date = new \DateTimeImmutable('today');
-        } else {
-            $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', (string) $rawDate);
-            if (false === $parsed) {
-                $errors['date'] = 'Date must be formatted YYYY-MM-DD';
-            } else {
-                $date = $parsed;
-            }
-        }
+        $date = $this->parseDate($body['date'] ?? null, 'date', $errors);
 
         $staff = null;
         $staffId = $body['staff_id'] ?? null;
@@ -121,14 +169,13 @@ class StaffWorkApiController extends AbstractController
         } elseif ((int) $rawRate < 0) {
             $errors['rate'] = 'Rate cannot be negative';
         } else {
-            $rate = (int) $rawRate / 100;
+            $rate = $this->rupees((int) $rawRate);
         }
 
         if ([] !== $errors) {
-            return $this->json(['errors' => $errors], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+            return $errors;
         }
 
-        $entry = new StaffWork();
         $entry->setDate($date);
         $entry->setStaff($staff);
         $entry->setPlant($plant);
@@ -138,10 +185,7 @@ class StaffWorkApiController extends AbstractController
         // sends an amount of its own.
         $entry->setQty($qty);
 
-        $this->em->persist($entry);
-        $this->em->flush();
-
-        return $this->json($this->payload($entry), JsonResponse::HTTP_CREATED);
+        return [];
     }
 
     /**
