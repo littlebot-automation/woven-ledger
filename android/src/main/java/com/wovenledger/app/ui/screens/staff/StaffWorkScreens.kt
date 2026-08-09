@@ -30,8 +30,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -347,13 +347,16 @@ fun StaffWorkCreateScreen(navController: NavHostController) {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // The fields scroll; the action below stays put, so saving never requires
+        // scrolling to find the button.
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
         DateField(
             date = form.date,
             error = form.errors["date"],
@@ -438,27 +441,41 @@ fun StaffWorkCreateScreen(navController: NavHostController) {
             }
         }
 
-        form.message?.let { message ->
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
         }
 
-        Button(
-            onClick = viewModel::submit,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !form.submitting,
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp,
         ) {
-            if (form.submitting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(end = 8.dp),
-                    strokeWidth = 2.dp,
-                )
-                Text("Saving…")
-            } else {
-                Text("Save work entry")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                form.message?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
+                Button(
+                    onClick = viewModel::submit,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !form.submitting,
+                ) {
+                    if (form.submitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(end = 8.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Text("Saving…")
+                    } else {
+                        Text("Save work entry")
+                    }
+                }
             }
         }
     }
