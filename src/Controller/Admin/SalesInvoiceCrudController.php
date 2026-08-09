@@ -6,12 +6,12 @@ namespace App\Controller\Admin;
 
 use App\Entity\SalesInvoice;
 use App\Form\SalesInvoiceLineType;
-use App\Service\DocumentNumberService;
-use App\Service\DocumentStockManager;
+use App\Service\DocumentPersister;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
@@ -21,6 +21,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use Symfony\Component\HttpFoundation\Response;
 
 class SalesInvoiceCrudController extends AbstractCrudController
 {
@@ -32,8 +33,7 @@ class SalesInvoiceCrudController extends AbstractCrudController
     private array $storedSnapshot = ['plantId' => null, 'lines' => []];
 
     public function __construct(
-        private readonly DocumentStockManager $stockManager,
-        private readonly DocumentNumberService $documentNumbers,
+        private readonly DocumentPersister $documentPersister,
     ) {
     }
 
@@ -67,19 +67,18 @@ class SalesInvoiceCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield FormField::addPanel('Invoice');
+        yield FormField::addFieldset('Invoice');
 
         yield TextField::new('no', 'Invoice No')
             ->setFormTypeOption('disabled', true)
             ->setRequired(false)
-            ->addCssClass('mono')
             ->setHelp('Assigned automatically on save');
 
         yield DateField::new('date', 'Date');
         yield AssociationField::new('party', 'Buyer')->autocomplete();
         yield AssociationField::new('plant', 'Plant');
 
-        yield FormField::addPanel('Line Items')->onlyOnForms();
+        yield FormField::addFieldset('Line Items')->onlyOnForms();
 
         yield CollectionField::new('lines', 'Items')
             ->setEntryType(SalesInvoiceLineType::class)
@@ -88,10 +87,9 @@ class SalesInvoiceCrudController extends AbstractCrudController
             ->setEntryIsComplex()
             ->renderExpanded()
             ->onlyOnForms()
-            ->setFormTypeOption('by_reference', false)
-            ->addCssClass('wl-line-items');
+            ->setFormTypeOption('by_reference', false);
 
-        yield FormField::addPanel('Totals')->onlyOnForms();
+        yield FormField::addFieldset('Totals')->onlyOnForms();
 
         yield MoneyField::new('subtotal', 'Subtotal')
             ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2)
@@ -106,8 +104,7 @@ class SalesInvoiceCrudController extends AbstractCrudController
         yield MoneyField::new('total', 'Total')
             ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2)
             ->setFormTypeOption('disabled', true)
-            ->setRequired(false)
-            ->addCssClass('mono');
+            ->setRequired(false);
 
         yield TextareaField::new('notes', 'Notes')->hideOnIndex();
     }
@@ -115,12 +112,12 @@ class SalesInvoiceCrudController extends AbstractCrudController
     /**
      * Freeze the stored footprint before the submitted data overwrites it.
      */
-    public function edit(AdminContext $context)
+    public function edit(AdminContext $context): KeyValueStore|Response
     {
         $invoice = $context->getEntity()->getInstance();
 
         if ($invoice instanceof SalesInvoice) {
-            $this->storedSnapshot = $this->stockManager->snapshot($invoice->getLines(), $invoice->getPlant());
+            $this->storedSnapshot = $this->documentPersister->snapshotOf($invoice);
         }
 
         return parent::edit($context);
@@ -134,20 +131,10 @@ class SalesInvoiceCrudController extends AbstractCrudController
             return;
         }
 
-        $this->stockManager->normalise($entityInstance);
-        $entityInstance->setNo($this->documentNumbers->consume(DocumentNumberService::SALES));
-
-        parent::persistEntity($em, $entityInstance);
-
         // Soft warnings only — the sale is already saved.
-        foreach ($this->stockManager->salesWarnings($entityInstance->getLines(), $entityInstance->getPlant()) as $warning) {
+        foreach ($this->documentPersister->createSalesInvoice($entityInstance) as $warning) {
             $this->addFlash('warning', $warning);
         }
-
-        $this->stockManager->applySnapshot(
-            $this->stockManager->snapshot($entityInstance->getLines(), $entityInstance->getPlant()),
-            -1,
-        );
     }
 
     public function updateEntity(EntityManagerInterface $em, $entityInstance): void
@@ -158,36 +145,19 @@ class SalesInvoiceCrudController extends AbstractCrudController
             return;
         }
 
-        $this->stockManager->normalise($entityInstance);
-
-        parent::updateEntity($em, $entityInstance);
-
-        foreach ($this->stockManager->salesWarnings(
-            $entityInstance->getLines(),
-            $entityInstance->getPlant(),
-            $this->storedSnapshot,
-        ) as $warning) {
+        foreach ($this->documentPersister->updateSalesInvoice($entityInstance, $this->storedSnapshot) as $warning) {
             $this->addFlash('warning', $warning);
         }
-
-        // Undo the stored effect at the stored plant, then apply the new one.
-        $this->stockManager->applySnapshot($this->storedSnapshot, +1);
-        $this->stockManager->applySnapshot(
-            $this->stockManager->snapshot($entityInstance->getLines(), $entityInstance->getPlant()),
-            -1,
-        );
     }
 
     public function deleteEntity(EntityManagerInterface $em, $entityInstance): void
     {
-        if ($entityInstance instanceof SalesInvoice) {
-            $snapshot = $this->stockManager->snapshot($entityInstance->getLines(), $entityInstance->getPlant());
+        if (!$entityInstance instanceof SalesInvoice) {
             parent::deleteEntity($em, $entityInstance);
-            $this->stockManager->applySnapshot($snapshot, +1);
 
             return;
         }
 
-        parent::deleteEntity($em, $entityInstance);
+        $this->documentPersister->deleteSalesInvoice($entityInstance);
     }
 }
