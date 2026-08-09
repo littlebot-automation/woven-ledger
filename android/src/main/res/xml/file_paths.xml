@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What the FileProvider is allowed to hand out. Only the invoice PDFs the app writes
+  into its own cache, and nothing else: the share sheet gets a read grant on one file,
+  not a window onto app storage.
+-->
+<paths>
+    <cache-path name="invoices" path="invoices/" />
+</paths>

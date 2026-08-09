@@ -8,8 +8,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
@@ -19,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
@@ -45,6 +51,7 @@ import com.wovenledger.app.ui.components.FilterSummary
 import com.wovenledger.app.ui.components.MoneyText
 import com.wovenledger.app.ui.components.formatMoney
 import com.wovenledger.app.ui.components.formatDate
+import com.wovenledger.app.pdf.InvoiceShareViewModel
 import com.wovenledger.app.ui.navigation.NavigationRoutes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -166,6 +173,13 @@ fun SalesInvoiceDetailScreen(navController: NavHostController, invoiceId: Long) 
     val partyName by viewModel.partyName.collectAsStateWithLifecycle()
     val lines by viewModel.lines.collectAsStateWithLifecycle()
 
+    // Sharing owns its own state: a PDF is generated on demand and nothing on this
+    // screen depends on it, so it does not belong in the detail view model.
+    val shareViewModel: InvoiceShareViewModel = hiltViewModel()
+    val sharing by shareViewModel.sharing.collectAsStateWithLifecycle()
+    val shareError by shareViewModel.error.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
     val current = invoice
     if (current == null) {
         EmptyState("That invoice isn't in the local copy yet.")
@@ -183,6 +197,9 @@ fun SalesInvoiceDetailScreen(navController: NavHostController, invoiceId: Long) 
         onEdit = {
             navController.navigate("${NavigationRoutes.SALES_INVOICE_EDIT_BASE}/${current.id}")
         },
+        onShare = { shareViewModel.share(context, current.id) },
+        sharing = sharing,
+        shareError = shareError,
     )
 }
 
@@ -382,11 +399,30 @@ private fun DocumentDetailBody(
     total: Long,
     lines: List<DocumentLineRow>,
     onEdit: () -> Unit,
+    onShare: (() -> Unit)? = null,
+    sharing: Boolean = false,
+    shareError: String? = null,
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         DocumentHeader(number, date, partyName)
 
-        EditButton(onEdit)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            EditButton(onEdit)
+
+            if (onShare != null) {
+                Spacer(Modifier.width(8.dp))
+                ShareButton(onShare, sharing)
+            }
+        }
+
+        if (shareError != null) {
+            Text(
+                text = shareError,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
 
         Card(
             modifier = Modifier
@@ -437,6 +473,38 @@ internal fun EditButton(onEdit: () -> Unit) {
     OutlinedButton(onClick = onEdit, modifier = Modifier.padding(top = 12.dp)) {
         Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
         Text("Edit")
+    }
+}
+
+/**
+ * Sends the invoice as a PDF through the system share sheet — WhatsApp, mail, whatever
+ * the owner has. Disabled while the file is being written so a double tap cannot open
+ * two choosers.
+ */
+@Composable
+private fun ShareButton(onShare: () -> Unit, sharing: Boolean) {
+    OutlinedButton(
+        onClick = onShare,
+        enabled = !sharing,
+        modifier = Modifier.padding(top = 12.dp),
+    ) {
+        if (sharing) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .size(16.dp)
+                    .padding(end = 2.dp),
+                strokeWidth = 2.dp,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Preparing…")
+        } else {
+            Icon(
+                Icons.Filled.Share,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+            Text("Share PDF")
+        }
     }
 }
 
