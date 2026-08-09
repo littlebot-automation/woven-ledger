@@ -7,6 +7,7 @@ import com.wovenledger.app.data.repository.PartyRepository
 import com.wovenledger.app.data.repository.PaymentRepository
 import com.wovenledger.app.data.repository.PlantRepository
 import com.wovenledger.app.data.repository.PurchaseBillRepository
+import com.wovenledger.app.data.repository.ReceiptRepository
 import com.wovenledger.app.data.repository.SalesInvoiceRepository
 import com.wovenledger.app.data.repository.StaffRepository
 import com.wovenledger.app.data.repository.StaffWorkRepository
@@ -45,6 +46,7 @@ class SyncManager @Inject constructor(
     private val salesInvoiceRepository: SalesInvoiceRepository,
     private val purchaseBillRepository: PurchaseBillRepository,
     private val paymentRepository: PaymentRepository,
+    private val receiptRepository: ReceiptRepository,
     private val staffRepository: StaffRepository,
     private val staffWorkRepository: StaffWorkRepository
 ) {
@@ -81,6 +83,7 @@ class SyncManager @Inject constructor(
             "sales invoices" to salesInvoiceRepository::syncFromApi,
             "purchase bills" to purchaseBillRepository::syncFromApi,
             "payments" to paymentRepository::syncFromApi,
+            "receipts" to receiptRepository::syncFromApi,
             "staff" to staffRepository::syncFromApi,
             "staff work" to staffWorkRepository::syncFromApi,
         )

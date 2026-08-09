@@ -131,6 +131,27 @@ data class PaymentDto(
     val updatedAt: String
 )
 
+data class ReceiptDto(
+    @SerializedName("id")
+    val id: Int,
+    @SerializedName("document_number")
+    val documentNumber: String,
+    @SerializedName("party_id")
+    val partyId: Int?,
+    @SerializedName("amount")
+    val amount: Long,
+    @SerializedName("receipt_date")
+    val receiptDate: String,
+    @SerializedName("mode")
+    val mode: String?,
+    @SerializedName("notes")
+    val notes: String?,
+    @SerializedName("created_at")
+    val createdAt: String?,
+    @SerializedName("updated_at")
+    val updatedAt: String?
+)
+
 // Retrofit API Service
 interface WovenLedgerApiService {
     @GET("/api/parties")
@@ -162,4 +183,10 @@ interface WovenLedgerApiService {
 
     @GET("/api/payments/{id}")
     suspend fun getPayment(@Path("id") id: Int): PaymentDto
+
+    @GET("/api/receipts")
+    suspend fun getReceipts(): List<ReceiptDto>
+
+    @GET("/api/receipts/{id}")
+    suspend fun getReceipt(@Path("id") id: Int): ReceiptDto
 }

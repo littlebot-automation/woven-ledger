@@ -35,9 +35,6 @@ import com.wovenledger.app.ui.navigation.NavigationRoutes
 import com.wovenledger.app.ui.screens.PurchaseBillCreateScreen
 import com.wovenledger.app.ui.screens.PaymentCreateScreen
 import com.wovenledger.app.ui.screens.ReceiptCreateScreen
-import com.wovenledger.app.ui.screens.ReceiptDetailScreen
-import com.wovenledger.app.ui.screens.ReceiptsListScreen
-import com.wovenledger.app.ui.screens.ReportsScreen
 import com.wovenledger.app.ui.screens.SalesInvoiceCreateScreen
 import com.wovenledger.app.ui.screens.SettingsScreen
 import com.wovenledger.app.ui.screens.dashboard.DashboardScreen
@@ -45,12 +42,15 @@ import com.wovenledger.app.ui.screens.documents.PaymentDetailScreen
 import com.wovenledger.app.ui.screens.documents.PaymentsListScreen
 import com.wovenledger.app.ui.screens.documents.PurchaseBillDetailScreen
 import com.wovenledger.app.ui.screens.documents.PurchaseBillsListScreen
+import com.wovenledger.app.ui.screens.documents.ReceiptDetailScreen
+import com.wovenledger.app.ui.screens.documents.ReceiptsListScreen
 import com.wovenledger.app.ui.screens.documents.SalesInvoiceDetailScreen
 import com.wovenledger.app.ui.screens.documents.SalesInvoicesListScreen
 import com.wovenledger.app.ui.screens.items.ItemDetailScreen
 import com.wovenledger.app.ui.screens.items.ItemsListScreen
 import com.wovenledger.app.ui.screens.more.MoreScreen
 import com.wovenledger.app.ui.screens.parties.PartiesListScreen
+import com.wovenledger.app.ui.screens.reports.ReportsScreen
 import com.wovenledger.app.ui.screens.parties.PartyDetailScreen
 import com.wovenledger.app.ui.screens.staff.StaffDetailScreen
 import com.wovenledger.app.ui.screens.staff.StaffListScreen

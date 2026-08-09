@@ -45,24 +45,6 @@ fun PurchaseBillCreateScreen(navController: NavHostController) {
 
 // ================================================================ Receipts
 @Composable
-fun ReceiptsListScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Receipts",
-        description = "Receipts aren't exposed by the API yet.",
-        navController = navController
-    )
-}
-
-@Composable
-fun ReceiptDetailScreen(navController: NavHostController, receiptId: Long) {
-    ScreenPlaceholder(
-        title = "Receipt",
-        description = "Receipts aren't exposed by the API yet.",
-        navController = navController
-    )
-}
-
-@Composable
 fun ReceiptCreateScreen(navController: NavHostController) {
     ScreenPlaceholder(
         title = "New receipt",
@@ -89,15 +71,6 @@ fun SettingsScreen(navController: NavHostController) {
     ScreenPlaceholder(
         title = "Settings",
         description = "Company settings aren't exposed by the API yet.",
-        navController = navController
-    )
-}
-
-@Composable
-fun ReportsScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "Reports",
-        description = "The six reports come once staff and stock data sync.",
         navController = navController
     )
 }
