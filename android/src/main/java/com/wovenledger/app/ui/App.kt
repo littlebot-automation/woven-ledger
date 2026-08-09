@@ -32,12 +32,12 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.wovenledger.app.ui.navigation.NavigationRoutes
-import com.wovenledger.app.ui.screens.PurchaseBillCreateScreen
-import com.wovenledger.app.ui.screens.PaymentCreateScreen
-import com.wovenledger.app.ui.screens.ReceiptCreateScreen
-import com.wovenledger.app.ui.screens.SalesInvoiceCreateScreen
 import com.wovenledger.app.ui.screens.dashboard.DashboardScreen
 import com.wovenledger.app.ui.screens.documents.PaymentDetailScreen
+import com.wovenledger.app.ui.screens.documents.PaymentFormScreen
+import com.wovenledger.app.ui.screens.documents.PurchaseBillFormScreen
+import com.wovenledger.app.ui.screens.documents.ReceiptFormScreen
+import com.wovenledger.app.ui.screens.documents.SalesInvoiceFormScreen
 import com.wovenledger.app.ui.screens.documents.PaymentsListScreen
 import com.wovenledger.app.ui.screens.documents.PurchaseBillDetailScreen
 import com.wovenledger.app.ui.screens.documents.PurchaseBillsListScreen
@@ -49,12 +49,14 @@ import com.wovenledger.app.ui.screens.items.ItemDetailScreen
 import com.wovenledger.app.ui.screens.items.ItemsListScreen
 import com.wovenledger.app.ui.screens.more.MoreScreen
 import com.wovenledger.app.ui.screens.parties.PartiesListScreen
+import com.wovenledger.app.ui.screens.parties.PartyFormScreen
 import com.wovenledger.app.ui.screens.reports.ReportsScreen
 import com.wovenledger.app.ui.screens.settings.SettingsScreen
+import com.wovenledger.app.ui.screens.stock.StockListScreen
 import com.wovenledger.app.ui.screens.parties.PartyDetailScreen
 import com.wovenledger.app.ui.screens.staff.StaffDetailScreen
 import com.wovenledger.app.ui.screens.staff.StaffListScreen
-import com.wovenledger.app.ui.screens.staff.StaffWorkCreateScreen
+import com.wovenledger.app.ui.screens.staff.StaffWorkFormScreen
 import com.wovenledger.app.ui.screens.staff.StaffWorkListScreen
 
 private data class Destination(
@@ -76,24 +78,32 @@ private val TITLES = mapOf(
     NavigationRoutes.MORE to "More",
     NavigationRoutes.PARTIES_LIST to "Parties",
     NavigationRoutes.PARTY_DETAIL to "Party",
+    NavigationRoutes.PARTY_CREATE to "New party",
+    NavigationRoutes.PARTY_EDIT to "Edit party",
     NavigationRoutes.ITEMS_LIST to "Items",
     NavigationRoutes.ITEM_DETAIL to "Item",
+    NavigationRoutes.STOCK to "Stock",
     NavigationRoutes.SALES_INVOICES_LIST to "Sales invoices",
     NavigationRoutes.SALES_INVOICE_DETAIL to "Sales invoice",
     NavigationRoutes.SALES_INVOICE_CREATE to "New sales invoice",
+    NavigationRoutes.SALES_INVOICE_EDIT to "Edit sales invoice",
     NavigationRoutes.PURCHASE_BILLS_LIST to "Purchase bills",
     NavigationRoutes.PURCHASE_BILL_DETAIL to "Purchase bill",
     NavigationRoutes.PURCHASE_BILL_CREATE to "New purchase bill",
+    NavigationRoutes.PURCHASE_BILL_EDIT to "Edit purchase bill",
     NavigationRoutes.RECEIPTS_LIST to "Receipts",
     NavigationRoutes.RECEIPT_DETAIL to "Receipt",
     NavigationRoutes.RECEIPT_CREATE to "New receipt",
+    NavigationRoutes.RECEIPT_EDIT to "Edit receipt",
     NavigationRoutes.PAYMENTS_LIST to "Payments",
     NavigationRoutes.PAYMENT_DETAIL to "Payment",
     NavigationRoutes.PAYMENT_CREATE to "New payment",
+    NavigationRoutes.PAYMENT_EDIT to "Edit payment",
     NavigationRoutes.STAFF_LIST to "Staff",
     NavigationRoutes.STAFF_DETAIL to "Staff member",
     NavigationRoutes.STAFF_WORK_LIST to "Staff work",
     NavigationRoutes.STAFF_WORK_CREATE to "Record work entry",
+    NavigationRoutes.STAFF_WORK_EDIT to "Edit work entry",
     NavigationRoutes.SETTINGS to "Settings",
     NavigationRoutes.REPORTS to "Reports",
 )
@@ -175,6 +185,19 @@ fun App() {
             ) { entry ->
                 PartyDetailScreen(navController, entry.arguments?.getLong("partyId") ?: 0L)
             }
+            composable(NavigationRoutes.PARTY_CREATE) {
+                PartyFormScreen(navController)
+            }
+            composable(
+                NavigationRoutes.PARTY_EDIT,
+                arguments = listOf(navArgument("partyId") { type = NavType.LongType })
+            ) {
+                PartyFormScreen(navController)
+            }
+
+            composable(NavigationRoutes.STOCK) {
+                StockListScreen(navController)
+            }
 
             composable(NavigationRoutes.ITEMS_LIST) {
                 ItemsListScreen(navController)
@@ -195,8 +218,16 @@ fun App() {
             ) { entry ->
                 SalesInvoiceDetailScreen(navController, entry.arguments?.getLong("invoiceId") ?: 0L)
             }
+            // One form serves both: the create route carries no id, the edit route does,
+            // and the ViewModel reads it straight off the back stack entry.
             composable(NavigationRoutes.SALES_INVOICE_CREATE) {
-                SalesInvoiceCreateScreen(navController)
+                SalesInvoiceFormScreen(navController)
+            }
+            composable(
+                NavigationRoutes.SALES_INVOICE_EDIT,
+                arguments = listOf(navArgument("invoiceId") { type = NavType.LongType })
+            ) {
+                SalesInvoiceFormScreen(navController)
             }
 
             composable(NavigationRoutes.PURCHASE_BILLS_LIST) {
@@ -209,7 +240,13 @@ fun App() {
                 PurchaseBillDetailScreen(navController, entry.arguments?.getLong("billId") ?: 0L)
             }
             composable(NavigationRoutes.PURCHASE_BILL_CREATE) {
-                PurchaseBillCreateScreen(navController)
+                PurchaseBillFormScreen(navController)
+            }
+            composable(
+                NavigationRoutes.PURCHASE_BILL_EDIT,
+                arguments = listOf(navArgument("billId") { type = NavType.LongType })
+            ) {
+                PurchaseBillFormScreen(navController)
             }
 
             composable(NavigationRoutes.RECEIPTS_LIST) {
@@ -222,7 +259,13 @@ fun App() {
                 ReceiptDetailScreen(navController, entry.arguments?.getLong("receiptId") ?: 0L)
             }
             composable(NavigationRoutes.RECEIPT_CREATE) {
-                ReceiptCreateScreen(navController)
+                ReceiptFormScreen(navController)
+            }
+            composable(
+                NavigationRoutes.RECEIPT_EDIT,
+                arguments = listOf(navArgument("receiptId") { type = NavType.LongType })
+            ) {
+                ReceiptFormScreen(navController)
             }
 
             composable(NavigationRoutes.PAYMENTS_LIST) {
@@ -235,7 +278,13 @@ fun App() {
                 PaymentDetailScreen(navController, entry.arguments?.getLong("paymentId") ?: 0L)
             }
             composable(NavigationRoutes.PAYMENT_CREATE) {
-                PaymentCreateScreen(navController)
+                PaymentFormScreen(navController)
+            }
+            composable(
+                NavigationRoutes.PAYMENT_EDIT,
+                arguments = listOf(navArgument("paymentId") { type = NavType.LongType })
+            ) {
+                PaymentFormScreen(navController)
             }
 
             composable(NavigationRoutes.STAFF_LIST) {
@@ -252,7 +301,13 @@ fun App() {
                 StaffWorkListScreen(navController)
             }
             composable(NavigationRoutes.STAFF_WORK_CREATE) {
-                StaffWorkCreateScreen(navController)
+                StaffWorkFormScreen(navController)
+            }
+            composable(
+                NavigationRoutes.STAFF_WORK_EDIT,
+                arguments = listOf(navArgument("workId") { type = NavType.LongType })
+            ) {
+                StaffWorkFormScreen(navController)
             }
 
             composable(NavigationRoutes.SETTINGS) {

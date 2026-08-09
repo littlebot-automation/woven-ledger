@@ -2,6 +2,7 @@ package com.wovenledger.app.ui.screens.parties
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,13 +12,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -105,6 +110,7 @@ fun PartiesListScreen(navController: NavHostController) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val filter by viewModel.filter.collectAsStateWithLifecycle()
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
             value = query,
@@ -148,6 +154,18 @@ fun PartiesListScreen(navController: NavHostController) {
             }
         }
     }
+
+        // Invoicing a customer who is not on file yet should not mean a trip to the
+        // portal, so a party can be added from here.
+        FloatingActionButton(
+            onClick = { navController.navigate(NavigationRoutes.PARTY_CREATE) },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = "New party")
+        }
+    }
 }
 
 @Composable
@@ -176,11 +194,12 @@ private fun PartyRow(party: Party, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            val receivable = party.openingBalanceType == BalanceType.TO_RECEIVE
+            // The running balance, not the opening one: what they owe today.
+            val receivable = party.ledgerBalance >= 0
             val tone = if (receivable) MoneyTone.Receive else MoneyTone.Pay
 
             Column(horizontalAlignment = Alignment.End) {
-                MoneyText(party.openingBalance, tone = tone)
+                MoneyText(kotlin.math.abs(party.ledgerBalance), tone = tone)
                 Text(
                     text = if (receivable) "to receive" else "to pay",
                     style = MaterialTheme.typography.labelSmall,
@@ -243,18 +262,37 @@ fun PartyDetailScreen(navController: NavHostController, partyId: Long) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            OutlinedButton(
+                onClick = { navController.navigate("${NavigationRoutes.PARTY_EDIT_BASE}/${party.id}") },
+                modifier = Modifier.padding(top = 12.dp),
+            ) {
+                Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Text("Edit")
+            }
         }
 
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    val receivable = party.openingBalanceType == BalanceType.TO_RECEIVE
+                    val receivable = party.ledgerBalance >= 0
                     val tone = if (receivable) MoneyTone.Receive else MoneyTone.Pay
 
                     DetailLine("Balance", null) {
-                        MoneyText(party.openingBalance, emphasis = true, tone = tone)
+                        MoneyText(kotlin.math.abs(party.ledgerBalance), emphasis = true, tone = tone)
                     }
                     DetailLine("Direction", if (receivable) "They owe us" else "We owe them")
+                    if (party.openingBalance != 0L) {
+                        DetailLine("Opening", null) {
+                            MoneyText(
+                                party.openingBalance,
+                                tone = if (party.openingBalanceType == BalanceType.TO_RECEIVE) {
+                                    MoneyTone.Receive
+                                } else {
+                                    MoneyTone.Pay
+                                },
+                            )
+                        }
+                    }
                     if (party.phone.isNotBlank()) DetailLine("Phone", party.phone)
                     if (!party.gstin.isNullOrBlank()) DetailLine("GSTIN", party.gstin)
                     if (party.address.isNotBlank()) DetailLine("Address", party.address)

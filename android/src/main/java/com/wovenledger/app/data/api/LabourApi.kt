@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 /**
@@ -92,12 +93,6 @@ data class NewStaffWork(
     val rate: Long?
 )
 
-/** Body of a 422: field name to message, e.g. {"errors": {"qty": "Qty is required"}}. */
-data class StaffWorkErrors(
-    @SerializedName("errors")
-    val errors: Map<String, String> = emptyMap()
-)
-
 interface LabourApiService {
     @GET("/api/staff")
     suspend fun getStaff(): List<StaffDto>
@@ -114,4 +109,11 @@ interface LabourApiService {
     /** 201 with the created entry, or 422 with a per-field error map. */
     @POST("/api/staff-work")
     suspend fun createStaffWork(@Body entry: NewStaffWork): StaffWorkDto
+
+    /**
+     * Corrects an entry. The server refuses a settled one — its amount is already
+     * inside a wage voucher — and says so through the `paid` field of the 422.
+     */
+    @PUT("/api/staff-work/{id}")
+    suspend fun updateStaffWork(@Path("id") id: Int, @Body entry: NewStaffWork): StaffWorkDto
 }

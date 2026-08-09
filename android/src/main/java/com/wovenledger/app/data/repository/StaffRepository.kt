@@ -40,7 +40,9 @@ class StaffRepository @Inject constructor(
      * an unreachable server and an empty staff list must not look the same on screen.
      */
     suspend fun syncFromApi() {
-        api.getStaff().forEach { dto ->
+        val dtos = api.getStaff()
+
+        dtos.forEach { dto ->
             val plantId = (dto.plantId?.toLong() ?: DEFAULT_PLANT_ID).also { ensurePlant(it) }
 
             val staff = Staff(
@@ -63,6 +65,10 @@ class StaffRepository @Inject constructor(
                 dao.update(staff.copy(createdAt = existing.createdAt))
             }
         }
+
+        // Upserting alone left staff removed on the portal on the phone for good.
+        val ids = dtos.map { it.id.toLong() }
+        if (ids.isEmpty()) dao.deleteAll() else dao.deleteMissing(ids)
     }
 
     /** The API sends 'daily' / 'piece'; anything unexpected falls back to daily. */

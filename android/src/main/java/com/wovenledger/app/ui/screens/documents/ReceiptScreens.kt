@@ -66,6 +66,8 @@ fun ReceiptsListScreen(navController: NavHostController) {
         emptyMessage = "No receipts yet.",
         onOpen = { navController.navigate("${NavigationRoutes.RECEIPT_DETAIL_BASE}/$it") },
         modifier = Modifier.fillMaxSize(),
+        onCreate = { navController.navigate(NavigationRoutes.RECEIPT_CREATE) },
+        createLabel = "New receipt",
     )
 }
 
@@ -106,6 +108,8 @@ fun ReceiptDetailScreen(navController: NavHostController, receiptId: Long) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        EditButton { navController.navigate("${NavigationRoutes.RECEIPT_EDIT_BASE}/${current.id}") }
 
         Card(
             modifier = Modifier

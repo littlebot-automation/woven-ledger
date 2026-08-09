@@ -6,11 +6,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -23,6 +30,7 @@ import com.wovenledger.app.data.entities.Party
 import com.wovenledger.app.data.entities.Payment
 import com.wovenledger.app.data.entities.PurchaseBill
 import com.wovenledger.app.data.entities.SalesInvoice
+import com.wovenledger.app.data.repository.ItemRepository
 import com.wovenledger.app.data.repository.PartyRepository
 import com.wovenledger.app.data.repository.PaymentRepository
 import com.wovenledger.app.data.repository.PurchaseBillRepository
@@ -31,6 +39,8 @@ import com.wovenledger.app.ui.components.AmountRow
 import com.wovenledger.app.ui.components.DocumentList
 import com.wovenledger.app.ui.components.DocumentSummary
 import com.wovenledger.app.ui.components.EmptyState
+import com.wovenledger.app.ui.components.MoneyText
+import com.wovenledger.app.ui.components.formatMoney
 import com.wovenledger.app.ui.components.formatDate
 import com.wovenledger.app.ui.navigation.NavigationRoutes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -75,6 +85,8 @@ fun SalesInvoicesListScreen(navController: NavHostController) {
         emptyMessage = "No sales invoices yet.",
         onOpen = { navController.navigate("${NavigationRoutes.SALES_INVOICE_DETAIL_BASE}/$it") },
         modifier = Modifier.fillMaxSize(),
+        onCreate = { navController.navigate(NavigationRoutes.SALES_INVOICE_CREATE) },
+        createLabel = "New sales invoice",
     )
 }
 
@@ -83,6 +95,7 @@ class SalesInvoiceDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     invoices: SalesInvoiceRepository,
     parties: PartyRepository,
+    items: ItemRepository,
 ) : ViewModel() {
 
     private val invoiceId: Long = savedStateHandle.get<Long>("invoiceId") ?: 0L
@@ -94,6 +107,16 @@ class SalesInvoiceDetailViewModel @Inject constructor(
         combine(invoices.read(invoiceId), parties.getAll()) { invoice, allParties ->
             invoice?.let { namesById(allParties)[it.partyId] }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Lines now arrive nested in the document payload and are cached alongside it. */
+    val lines: StateFlow<List<DocumentLineRow>> =
+        combine(invoices.getLines(invoiceId), items.getAll()) { lines, allItems ->
+            val names = allItems.associate { it.id to it.name }
+
+            lines.map {
+                DocumentLineRow(names[it.itemId] ?: "Item #${it.itemId}", it.qty, it.rate, it.amount)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 }
 
 @Composable
@@ -101,6 +124,7 @@ fun SalesInvoiceDetailScreen(navController: NavHostController, invoiceId: Long) 
     val viewModel: SalesInvoiceDetailViewModel = hiltViewModel()
     val invoice by viewModel.invoice.collectAsStateWithLifecycle()
     val partyName by viewModel.partyName.collectAsStateWithLifecycle()
+    val lines by viewModel.lines.collectAsStateWithLifecycle()
 
     val current = invoice
     if (current == null) {
@@ -115,6 +139,10 @@ fun SalesInvoiceDetailScreen(navController: NavHostController, invoiceId: Long) 
         subtotal = current.subtotal,
         discount = current.discount,
         total = current.total,
+        lines = lines,
+        onEdit = {
+            navController.navigate("${NavigationRoutes.SALES_INVOICE_EDIT_BASE}/${current.id}")
+        },
     )
 }
 
@@ -145,6 +173,8 @@ fun PurchaseBillsListScreen(navController: NavHostController) {
         emptyMessage = "No purchase bills yet.",
         onOpen = { navController.navigate("${NavigationRoutes.PURCHASE_BILL_DETAIL_BASE}/$it") },
         modifier = Modifier.fillMaxSize(),
+        onCreate = { navController.navigate(NavigationRoutes.PURCHASE_BILL_CREATE) },
+        createLabel = "New purchase bill",
     )
 }
 
@@ -153,6 +183,7 @@ class PurchaseBillDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     bills: PurchaseBillRepository,
     parties: PartyRepository,
+    items: ItemRepository,
 ) : ViewModel() {
 
     private val billId: Long = savedStateHandle.get<Long>("billId") ?: 0L
@@ -164,6 +195,15 @@ class PurchaseBillDetailViewModel @Inject constructor(
         combine(bills.read(billId), parties.getAll()) { bill, allParties ->
             bill?.let { namesById(allParties)[it.partyId] }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val lines: StateFlow<List<DocumentLineRow>> =
+        combine(bills.getLines(billId), items.getAll()) { lines, allItems ->
+            val names = allItems.associate { it.id to it.name }
+
+            lines.map {
+                DocumentLineRow(names[it.itemId] ?: "Item #${it.itemId}", it.qty, it.rate, it.amount)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 }
 
 @Composable
@@ -171,6 +211,7 @@ fun PurchaseBillDetailScreen(navController: NavHostController, billId: Long) {
     val viewModel: PurchaseBillDetailViewModel = hiltViewModel()
     val bill by viewModel.bill.collectAsStateWithLifecycle()
     val partyName by viewModel.partyName.collectAsStateWithLifecycle()
+    val lines by viewModel.lines.collectAsStateWithLifecycle()
 
     val current = bill
     if (current == null) {
@@ -185,6 +226,10 @@ fun PurchaseBillDetailScreen(navController: NavHostController, billId: Long) {
         subtotal = current.subtotal,
         discount = current.discount,
         total = current.total,
+        lines = lines,
+        onEdit = {
+            navController.navigate("${NavigationRoutes.PURCHASE_BILL_EDIT_BASE}/${current.id}")
+        },
     )
 }
 
@@ -220,6 +265,8 @@ fun PaymentsListScreen(navController: NavHostController) {
         emptyMessage = "No payments yet.",
         onOpen = { navController.navigate("${NavigationRoutes.PAYMENT_DETAIL_BASE}/$it") },
         modifier = Modifier.fillMaxSize(),
+        onCreate = { navController.navigate(NavigationRoutes.PAYMENT_CREATE) },
+        createLabel = "New payment",
     )
 }
 
@@ -256,6 +303,8 @@ fun PaymentDetailScreen(navController: NavHostController, paymentId: Long) {
     Column(modifier = Modifier.padding(16.dp)) {
         DocumentHeader(current.no, current.date, partyName)
 
+        EditButton { navController.navigate("${NavigationRoutes.PAYMENT_EDIT_BASE}/${current.id}") }
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -275,6 +324,14 @@ fun PaymentDetailScreen(navController: NavHostController, paymentId: Long) {
 
 // ------------------------------------------------------------------ Shared
 
+/** One line as the detail screens render it, with its item already named. */
+data class DocumentLineRow(
+    val itemName: String,
+    val qty: Double,
+    val rate: Long,
+    val amount: Long,
+)
+
 @Composable
 private fun DocumentDetailBody(
     number: String,
@@ -283,9 +340,13 @@ private fun DocumentDetailBody(
     subtotal: Long,
     discount: Long,
     total: Long,
+    lines: List<DocumentLineRow>,
+    onEdit: () -> Unit,
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         DocumentHeader(number, date, partyName)
+
+        EditButton(onEdit)
 
         Card(
             modifier = Modifier
@@ -294,19 +355,48 @@ private fun DocumentDetailBody(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
+                lines.forEach { line ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(line.itemName, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                // Qty is a count in the item's unit, so it is not money
+                                // and is not formatted as such; the rate beside it is.
+                                text = "${formatQty(line.qty)} × ${formatMoney(line.rate)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        MoneyText(line.amount)
+                    }
+                }
+
+                if (lines.isNotEmpty()) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                }
+
                 AmountRow("Subtotal", subtotal)
                 if (discount != 0L) AmountRow("Discount", discount)
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 AmountRow("Total", total, emphasis = true)
             }
         }
+    }
+}
 
-        Text(
-            text = "Line items arrive with the document endpoint.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 16.dp),
-        )
+/** Trailing zeros on a count of bags add nothing. */
+private fun formatQty(qty: Double): String =
+    if (qty == qty.toLong().toDouble()) qty.toLong().toString() else qty.toString()
+
+@Composable
+internal fun EditButton(onEdit: () -> Unit) {
+    OutlinedButton(onClick = onEdit, modifier = Modifier.padding(top = 12.dp)) {
+        Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+        Text("Edit")
     }
 }
 

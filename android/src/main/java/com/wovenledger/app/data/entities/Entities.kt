@@ -79,6 +79,15 @@ data class Party(
     val openingBalance: Long = 0, // paise
     @ColumnInfo(name = "opening_balance_type")
     val openingBalanceType: BalanceType = BalanceType.TO_RECEIVE,
+    /**
+     * What the party owes right now, in paise, signed: positive means they owe us.
+     *
+     * Derived by the portal from every document on their ledger, so it is cached
+     * here rather than computed — and kept apart from [openingBalance], which is
+     * the only one of the two an edit form may rewrite.
+     */
+    @ColumnInfo(name = "ledger_balance")
+    val ledgerBalance: Long = 0,
     @ColumnInfo(name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now()
 )

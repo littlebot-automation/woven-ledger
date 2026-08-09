@@ -24,10 +24,9 @@ import com.wovenledger.app.data.entities.*
         Receipt::class,
         Payment::class
     ],
-    // v2 drops the local demo seed. Existing installs carry seeded rows alongside the
-    // synced ones, so the bump exists to discard that database rather than to change
-    // its shape.
-    version = 2,
+    // v2 dropped the local demo seed. v3 separates a party's opening balance from
+    // its running ledger balance, which the API now sends as two distinct figures.
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

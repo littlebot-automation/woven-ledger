@@ -1,9 +1,10 @@
 package com.wovenledger.app.data.repository
 
+import com.wovenledger.app.data.api.NewPayment
+import com.wovenledger.app.data.api.PaymentDto
 import com.wovenledger.app.data.api.WovenLedgerApiService
 import com.wovenledger.app.data.dao.PaymentDao
 import com.wovenledger.app.data.entities.Payment
-import com.wovenledger.app.data.entities.PaymentMode
 import com.wovenledger.app.data.entities.PaymentType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -49,30 +50,44 @@ class PaymentRepository @Inject constructor(
 
     fun findRecent(): Flow<List<Payment>> = dao.getAllPayments().map { it.take(10) }
 
+    /** Books the payment on the server and mirrors it into Room. */
+    suspend fun createOnServer(payment: NewPayment): Payment = store(api.createPayment(payment))
+
+    suspend fun updateOnServer(id: Long, payment: NewPayment): Payment =
+        store(api.updatePayment(id.toInt(), payment))
+
     /** Throws on failure so [com.wovenledger.app.data.sync.SyncManager] can report it. */
     suspend fun syncFromApi() {
-        val apiPayments = api.getPayments()
-        apiPayments.forEach { dto ->
-            val payment = Payment(
-                id = dto.id.toLong(),
-                no = dto.documentNumber,
-                partyId = dto.partyId?.toLong(),
-                staffId = null,
-                amount = dto.amount,
-                date = java.time.LocalDate.parse(dto.paymentDate),
-                type = PaymentType.valueOf(dto.paymentType.uppercase()),
-                // API sends display labels such as "Bank Transfer".
-                mode = dto.mode
-                    ?.let { PaymentMode.valueOf(it.uppercase().replace(' ', '_')) }
-                    ?: PaymentMode.CASH,
-                notes = dto.notes ?: ""
-            )
-            val existing = dao.getPayment(payment.id).first()
-            if (existing == null) {
+        val dtos = api.getPayments()
+
+        dtos.forEach { dto ->
+            val payment = toEntity(dto)
+
+            if (dao.getPayment(payment.id).first() == null) {
                 dao.insert(payment)
             } else {
                 dao.update(payment)
             }
         }
+
+        // Upserting alone left payments deleted on the portal on the phone for good.
+        val ids = dtos.map { it.id.toLong() }
+        if (ids.isEmpty()) dao.deleteAll() else dao.deleteMissing(ids)
     }
+
+    private suspend fun store(dto: PaymentDto): Payment = toEntity(dto).also { dao.insert(it) }
+
+    private fun toEntity(dto: PaymentDto) = Payment(
+        id = dto.id.toLong(),
+        no = dto.documentNumber,
+        // A voucher points at one side or the other, never both: wages carry a staff
+        // member where a party payment carries a party.
+        partyId = dto.partyId?.toLong(),
+        staffId = dto.staffId?.toLong(),
+        amount = dto.amount,
+        date = java.time.LocalDate.parse(dto.paymentDate),
+        type = PaymentType.valueOf(dto.paymentType.uppercase()),
+        mode = paymentModeOf(dto.mode),
+        notes = dto.notes ?: ""
+    )
 }

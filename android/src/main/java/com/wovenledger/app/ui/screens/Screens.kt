@@ -16,55 +16,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 
 /**
- * Screens still awaiting their backing API.
+ * The last stub standing.
  *
- * Dashboard, parties, items, sales invoices, purchase bills and payments have real
- * implementations under their own packages. What remains here needs endpoints that
- * do not exist yet (receipts, staff, staff work, settings) or write support (the
- * create forms), and each says so rather than pretending to be finished.
+ * Every screen that once lived here — the create forms included, now that the API
+ * accepts writes — has a real implementation under its own package. What remains is
+ * the placeholder itself, kept for whatever lands next.
  */
-
-// ================================================================ Sales / purchase creation
-@Composable
-fun SalesInvoiceCreateScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "New sales invoice",
-        description = "Creating invoices needs the write API.",
-        navController = navController
-    )
-}
-
-@Composable
-fun PurchaseBillCreateScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "New purchase bill",
-        description = "Creating bills needs the write API.",
-        navController = navController
-    )
-}
-
-// ================================================================ Receipts
-@Composable
-fun ReceiptCreateScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "New receipt",
-        description = "Creating receipts needs the write API.",
-        navController = navController
-    )
-}
-
-// ================================================================ Payments creation
-@Composable
-fun PaymentCreateScreen(navController: NavHostController) {
-    ScreenPlaceholder(
-        title = "New payment",
-        description = "Creating payments needs the write API.",
-        navController = navController
-    )
-}
-
-// Staff, staff work and work entry now live in ui/screens/staff/.
-
 
 // ================================================================ Placeholder
 @Composable

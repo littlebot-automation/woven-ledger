@@ -294,9 +294,13 @@ fun StaffDetailScreen(navController: NavHostController, staffId: Long) {
  * differ only in whether the subtitle names the staff member or the work type.
  */
 @Composable
-internal fun WorkEntryCard(entry: StaffWork, subtitle: String) {
+internal fun WorkEntryCard(entry: StaffWork, subtitle: String, onClick: (() -> Unit)? = null) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        // Only rows that can still be corrected are tappable; a settled entry has
+        // nothing to open.
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(

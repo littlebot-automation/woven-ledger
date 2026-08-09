@@ -54,6 +54,19 @@ interface PartyDao {
     @Query("SELECT * FROM parties WHERE name LIKE :q OR phone LIKE :q OR gstin LIKE :q ORDER BY name ASC")
     fun search(q: String): Flow<List<Party>>
 
+    /**
+     * Removes rows the server no longer has.
+     *
+     * Sync was upsert-only, so anything deleted on the portal stayed on the phone
+     * for good. An empty list means the server has none of these at all, which
+     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     */
+    @Query("DELETE FROM parties WHERE id NOT IN (:keep)")
+    suspend fun deleteMissing(keep: List<Long>)
+
+    @Query("DELETE FROM parties")
+    suspend fun deleteAll()
+
     @Query("SELECT DISTINCT party_id FROM (SELECT party_id FROM sales_invoices UNION SELECT party_id FROM purchase_bills UNION SELECT party_id FROM receipts UNION SELECT party_id FROM payments)")
     suspend fun findIdsWithTransactions(): List<Int>
 
@@ -77,6 +90,19 @@ interface ItemDao {
 
     @Query("SELECT * FROM items WHERE type = :type ORDER BY name")
     fun getItemsByType(type: String): Flow<List<Item>>
+
+    /**
+     * Removes rows the server no longer has.
+     *
+     * Sync was upsert-only, so anything deleted on the portal stayed on the phone
+     * for good. An empty list means the server has none of these at all, which
+     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     */
+    @Query("DELETE FROM items WHERE id NOT IN (:keep)")
+    suspend fun deleteMissing(keep: List<Long>)
+
+    @Query("DELETE FROM items")
+    suspend fun deleteAll()
 
     @Query("SELECT * FROM items WHERE id = :id")
     fun getItem(id: Long): Flow<Item?>
@@ -117,6 +143,19 @@ interface StaffDao {
     @Query("SELECT * FROM staff WHERE plant_id = :plantId ORDER BY name")
     fun getStaffByPlant(plantId: Long): Flow<List<Staff>>
 
+    /**
+     * Removes rows the server no longer has.
+     *
+     * Sync was upsert-only, so anything deleted on the portal stayed on the phone
+     * for good. An empty list means the server has none of these at all, which
+     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     */
+    @Query("DELETE FROM staff WHERE id NOT IN (:keep)")
+    suspend fun deleteMissing(keep: List<Long>)
+
+    @Query("DELETE FROM staff")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM staff WHERE id = :id")
     fun getStaff(id: Long): Flow<Staff?>
 
@@ -140,6 +179,19 @@ interface StaffWorkDao {
 
     @Query("SELECT * FROM staff_work WHERE paid = 0 ORDER BY staff_id, date")
     fun getUnpaidWork(): Flow<List<StaffWork>>
+
+    /**
+     * Removes rows the server no longer has.
+     *
+     * Sync was upsert-only, so anything deleted on the portal stayed on the phone
+     * for good. An empty list means the server has none of these at all, which
+     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     */
+    @Query("DELETE FROM staff_work WHERE id NOT IN (:keep)")
+    suspend fun deleteMissing(keep: List<Long>)
+
+    @Query("DELETE FROM staff_work")
+    suspend fun deleteAll()
 
     @Query("SELECT * FROM staff_work WHERE id = :id")
     fun getWork(id: Long): Flow<StaffWork?>
@@ -180,6 +232,19 @@ interface SalesInvoiceDao {
     @Query("SELECT * FROM sales_invoices WHERE id = :id")
     fun getInvoice(id: Long): Flow<SalesInvoice?>
 
+    /**
+     * Removes rows the server no longer has.
+     *
+     * Sync was upsert-only, so anything deleted on the portal stayed on the phone
+     * for good. An empty list means the server has none of these at all, which
+     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     */
+    @Query("DELETE FROM sales_invoices WHERE id NOT IN (:keep)")
+    suspend fun deleteMissing(keep: List<Long>)
+
+    @Query("DELETE FROM sales_invoices")
+    suspend fun deleteAll()
+
     @Query("SELECT SUM(total) FROM sales_invoices")
     suspend fun sumTotal(): Long
 
@@ -204,6 +269,9 @@ interface SalesInvoiceLineDao {
     @Query("SELECT * FROM sales_invoice_lines WHERE invoice_id = :invoiceId")
     fun getLinesByInvoice(invoiceId: Long): Flow<List<SalesInvoiceLine>>
 
+    @Query("DELETE FROM sales_invoice_lines WHERE invoice_id = :invoiceId")
+    suspend fun deleteForInvoice(invoiceId: Long)
+
     @Delete
     suspend fun delete(line: SalesInvoiceLine)
 }
@@ -221,6 +289,19 @@ interface PurchaseBillDao {
 
     @Query("SELECT * FROM purchase_bills WHERE id = :id")
     fun getBill(id: Long): Flow<PurchaseBill?>
+
+    /**
+     * Removes rows the server no longer has.
+     *
+     * Sync was upsert-only, so anything deleted on the portal stayed on the phone
+     * for good. An empty list means the server has none of these at all, which
+     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     */
+    @Query("DELETE FROM purchase_bills WHERE id NOT IN (:keep)")
+    suspend fun deleteMissing(keep: List<Long>)
+
+    @Query("DELETE FROM purchase_bills")
+    suspend fun deleteAll()
 
     @Query("SELECT SUM(total) FROM purchase_bills")
     suspend fun sumTotal(): Long
@@ -246,6 +327,9 @@ interface PurchaseBillLineDao {
     @Query("SELECT * FROM purchase_bill_lines WHERE bill_id = :billId")
     fun getLinesByBill(billId: Long): Flow<List<PurchaseBillLine>>
 
+    @Query("DELETE FROM purchase_bill_lines WHERE bill_id = :billId")
+    suspend fun deleteForBill(billId: Long)
+
     @Delete
     suspend fun delete(line: PurchaseBillLine)
 }
@@ -263,6 +347,19 @@ interface ReceiptDao {
 
     @Query("SELECT * FROM receipts WHERE id = :id")
     fun getReceipt(id: Long): Flow<Receipt?>
+
+    /**
+     * Removes rows the server no longer has.
+     *
+     * Sync was upsert-only, so anything deleted on the portal stayed on the phone
+     * for good. An empty list means the server has none of these at all, which
+     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     */
+    @Query("DELETE FROM receipts WHERE id NOT IN (:keep)")
+    suspend fun deleteMissing(keep: List<Long>)
+
+    @Query("DELETE FROM receipts")
+    suspend fun deleteAll()
 
     @Query("SELECT SUM(amount) FROM receipts")
     suspend fun sumAmount(): Long
@@ -296,6 +393,19 @@ interface PaymentDao {
 
     @Query("SELECT * FROM payments WHERE id = :id")
     fun getPayment(id: Long): Flow<Payment?>
+
+    /**
+     * Removes rows the server no longer has.
+     *
+     * Sync was upsert-only, so anything deleted on the portal stayed on the phone
+     * for good. An empty list means the server has none of these at all, which
+     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     */
+    @Query("DELETE FROM payments WHERE id NOT IN (:keep)")
+    suspend fun deleteMissing(keep: List<Long>)
+
+    @Query("DELETE FROM payments")
+    suspend fun deleteAll()
 
     @Query("SELECT SUM(amount) FROM payments")
     suspend fun sumAmount(): Long

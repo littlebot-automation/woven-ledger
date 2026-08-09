@@ -73,8 +73,18 @@ class StaffWorkRepository @Inject constructor(
      * throws — including [retrofit2.HttpException] on a 422 — rather than queueing.
      * The caller reads the field errors off the 422 body.
      */
-    suspend fun createOnServer(entry: NewStaffWork): StaffWork {
-        val dto = api.createStaffWork(entry)
+    suspend fun createOnServer(entry: NewStaffWork): StaffWork = store(api.createStaffWork(entry))
+
+    /**
+     * Corrects an entry the server still lets us touch.
+     *
+     * A settled entry comes back as a 422 keyed `paid`, because its amount is
+     * already inside a wage voucher that would otherwise disagree with it.
+     */
+    suspend fun updateOnServer(id: Long, entry: NewStaffWork): StaffWork =
+        store(api.updateStaffWork(id.toInt(), entry))
+
+    private suspend fun store(dto: StaffWorkDto): StaffWork {
         val work = toEntity(dto)
         ensurePlant(work.plantId)
         dao.insert(work)
@@ -89,7 +99,9 @@ class StaffWorkRepository @Inject constructor(
      * Staff must be synced first: each entry points at a staff row.
      */
     suspend fun syncFromApi() {
-        api.getStaffWork().forEach { dto ->
+        val dtos = api.getStaffWork()
+
+        dtos.forEach { dto ->
             val work = toEntity(dto)
             ensurePlant(work.plantId)
 
@@ -100,6 +112,12 @@ class StaffWorkRepository @Inject constructor(
                 dao.update(work)
             }
         }
+
+        // Upserting alone left entries deleted on the portal on the phone for good —
+        // the symptom that started this: a work row removed on the server stayed
+        // visible in the app until the database was wiped.
+        val ids = dtos.map { it.id.toLong() }
+        if (ids.isEmpty()) dao.deleteAll() else dao.deleteMissing(ids)
     }
 
     /**

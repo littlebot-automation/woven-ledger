@@ -41,6 +41,7 @@ import com.wovenledger.app.ui.components.MoneyTone
 import com.wovenledger.app.ui.components.MoneyText
 import com.wovenledger.app.ui.components.formatDate
 import com.wovenledger.app.ui.components.formatMoney
+import com.wovenledger.app.ui.screens.stock.StockReportBody
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -108,22 +109,23 @@ class ReportsViewModel @Inject constructor(
 
         // docs/SPEC.md §6 puts anything above a rounding threshold on these two reports,
         // so a party sitting at exactly zero appears on neither.
-        val owing = allParties.filter { it.openingBalanceType == BalanceType.TO_RECEIVE && it.openingBalance > 0 }
-        val owed = allParties.filter { it.openingBalanceType == BalanceType.TO_PAY && it.openingBalance > 0 }
+        // The running balance is signed by the portal: positive is owed to us.
+        val owing = allParties.filter { it.ledgerBalance > 0 }
+        val owed = allParties.filter { it.ledgerBalance < 0 }
 
         val receivables = Report(
-            rows = owing.sortedByDescending { it.openingBalance }.map {
-                ReportRow(it.name, it.type.name.lowercase(), it.openingBalance, MoneyTone.Receive)
+            rows = owing.sortedByDescending { it.ledgerBalance }.map {
+                ReportRow(it.name, it.type.name.lowercase(), it.ledgerBalance, MoneyTone.Receive)
             },
-            total = owing.sumOf { it.openingBalance },
+            total = owing.sumOf { it.ledgerBalance },
             totalLabel = "Total receivable",
         )
 
         val payables = Report(
-            rows = owed.sortedByDescending { it.openingBalance }.map {
-                ReportRow(it.name, it.type.name.lowercase(), it.openingBalance, MoneyTone.Pay)
+            rows = owed.sortedBy { it.ledgerBalance }.map {
+                ReportRow(it.name, it.type.name.lowercase(), -it.ledgerBalance, MoneyTone.Pay)
             },
-            total = owed.sumOf { it.openingBalance },
+            total = owed.sumOf { -it.ledgerBalance },
             totalLabel = "Total payable",
         )
 
@@ -186,9 +188,8 @@ fun ReportsScreen(navController: NavHostController) {
         }
 
         when (tab) {
-            // Stock is plant-wise and lives behind an inventory endpoint that does not
-            // exist yet, so it says so rather than rendering a misleading empty table.
-            Tab.Stock -> EmptyState("Stock levels arrive with the inventory endpoint.")
+            // Stock owns its own fetch and list; the other tabs render from Room.
+            Tab.Stock -> StockReportBody()
             Tab.Sales -> ReportBody(data.sales)
             Tab.Purchases -> ReportBody(data.purchases)
             Tab.Receivables -> ReportBody(data.receivables)

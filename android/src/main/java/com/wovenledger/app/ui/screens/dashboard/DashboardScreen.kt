@@ -73,14 +73,10 @@ class DashboardViewModel @Inject constructor(
         parties.getAll(),
         salesInvoices.findRecent(),
     ) { sales, purchases, paid, allParties, recent ->
-        // A party's balance direction lives in openingBalanceType, so receivables and
-        // payables are two partitions of the same list rather than a sign test.
-        val receivable = allParties
-            .filter { it.openingBalanceType == BalanceType.TO_RECEIVE }
-            .sumOf { it.openingBalance }
-        val payable = allParties
-            .filter { it.openingBalanceType == BalanceType.TO_PAY }
-            .sumOf { it.openingBalance }
+        // The portal signs a party's running balance: positive means they owe us.
+        // Receivables and payables are the two sides of that one number.
+        val receivable = allParties.filter { it.ledgerBalance > 0 }.sumOf { it.ledgerBalance }
+        val payable = allParties.filter { it.ledgerBalance < 0 }.sumOf { -it.ledgerBalance }
 
         DashboardData(
             totalSales = sales,
@@ -89,8 +85,8 @@ class DashboardViewModel @Inject constructor(
             receivables = receivable,
             payables = payable,
             topOutstanding = allParties
-                .filter { it.openingBalance > 0 }
-                .sortedByDescending { it.openingBalance }
+                .filter { it.ledgerBalance != 0L }
+                .sortedByDescending { kotlin.math.abs(it.ledgerBalance) }
                 .take(5),
             recentInvoices = recent.take(5),
         )
@@ -164,12 +160,8 @@ fun DashboardScreen(navController: NavHostController) {
                     ) {
                         Text(party.name, style = MaterialTheme.typography.bodyLarge)
                         MoneyText(
-                            paise = party.openingBalance,
-                            tone = if (party.openingBalanceType == BalanceType.TO_RECEIVE) {
-                                MoneyTone.Receive
-                            } else {
-                                MoneyTone.Pay
-                            },
+                            paise = kotlin.math.abs(party.ledgerBalance),
+                            tone = if (party.ledgerBalance >= 0) MoneyTone.Receive else MoneyTone.Pay,
                         )
                     }
                 }

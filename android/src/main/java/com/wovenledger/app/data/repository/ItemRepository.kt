@@ -57,5 +57,9 @@ class ItemRepository @Inject constructor(
                 dao.update(item)
             }
         }
+
+        // Upserting alone left items deleted on the portal on the phone for good.
+        val ids = apiItems.map { it.id.toLong() }
+        if (ids.isEmpty()) dao.deleteAll() else dao.deleteMissing(ids)
     }
 }

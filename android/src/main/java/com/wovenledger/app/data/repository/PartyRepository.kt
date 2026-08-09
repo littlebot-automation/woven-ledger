@@ -1,5 +1,7 @@
 package com.wovenledger.app.data.repository
 
+import com.wovenledger.app.data.api.NewParty
+import com.wovenledger.app.data.api.PartyDto
 import com.wovenledger.app.data.api.WovenLedgerApiService
 import com.wovenledger.app.data.dao.PartyDao
 import com.wovenledger.app.data.entities.BalanceType
@@ -49,32 +51,53 @@ class PartyRepository @Inject constructor(
 
     fun findRecent(): Flow<List<Party>> = dao.getAllParties()
 
+    /**
+     * Registers a party on the server and mirrors it into Room.
+     *
+     * Writes are online-only by design: this suspends until the server answers and
+     * throws — including [retrofit2.HttpException] on a 422 — rather than queueing.
+     */
+    suspend fun createOnServer(party: NewParty): Party = store(api.createParty(party))
+
+    suspend fun updateOnServer(id: Long, party: NewParty): Party =
+        store(api.updateParty(id.toInt(), party))
+
     /** Throws on failure so [com.wovenledger.app.data.sync.SyncManager] can report it. */
     suspend fun syncFromApi() {
-        val apiParties = api.getParties()
-        apiParties.forEach { dto ->
-            val party = Party(
-                id = dto.id.toLong(),
-                name = dto.name,
-                type = PartyType.valueOf(dto.type.uppercase()),
-                address = dto.address ?: "",
-                phone = dto.phone ?: "",
-                gstin = dto.gstNumber,
-                // The API encodes direction in the sign of the balance:
-                // negative means we owe the party.
-                openingBalance = kotlin.math.abs(dto.ledgerBalance),
-                openingBalanceType = if (dto.ledgerBalance < 0) {
-                    BalanceType.TO_PAY
-                } else {
-                    BalanceType.TO_RECEIVE
-                }
-            )
-            val existing = dao.getParty(party.id).first()
-            if (existing == null) {
+        val dtos = api.getParties()
+
+        dtos.forEach { dto ->
+            val party = toEntity(dto)
+            if (dao.getParty(party.id).first() == null) {
                 dao.insert(party)
             } else {
                 dao.update(party)
             }
         }
+
+        // Sync was upsert-only, so a party deleted on the portal used to linger on
+        // the phone for good. The server's list is the whole truth about what exists.
+        val ids = dtos.map { it.id.toLong() }
+        if (ids.isEmpty()) dao.deleteAll() else dao.deleteMissing(ids)
     }
+
+    private suspend fun store(dto: PartyDto): Party = toEntity(dto).also { dao.insert(it) }
+
+    private fun toEntity(dto: PartyDto) = Party(
+        id = dto.id.toLong(),
+        name = dto.name,
+        type = PartyType.valueOf(dto.type.uppercase()),
+        address = dto.address ?: "",
+        phone = dto.phone ?: "",
+        gstin = dto.gstNumber,
+        // Two different figures: the opening one an edit form rewrites, and the
+        // running total the portal derives and the lists display.
+        openingBalance = dto.openingBalance,
+        openingBalanceType = if (dto.openingBalanceType == "to_pay") {
+            BalanceType.TO_PAY
+        } else {
+            BalanceType.TO_RECEIVE
+        },
+        ledgerBalance = dto.ledgerBalance
+    )
 }
