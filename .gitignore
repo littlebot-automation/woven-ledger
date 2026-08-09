@@ -1,8 +1,7 @@
-# Build artifacts
+# Build artifacts (but allow compressed APKs for distribution)
 android/build/
 android/.gradle/
 android/.idea/
-*.apk
 *.aab
 *.o
 *.so
@@ -18,21 +17,3 @@ local.properties
 var/
 .env.local
 .env.*.local
-node_modules/
-public/assets/
-
-# IDEs
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Dependencies
-vendor/
-node_modules/
-
-# Caches
-.cache/
-*.log
