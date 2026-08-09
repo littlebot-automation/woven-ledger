@@ -1,8 +1,11 @@
 package com.wovenledger.app.data.sync
 
+import android.util.Log
+import com.wovenledger.app.data.entities.Plant
 import com.wovenledger.app.data.repository.ItemRepository
 import com.wovenledger.app.data.repository.PartyRepository
 import com.wovenledger.app.data.repository.PaymentRepository
+import com.wovenledger.app.data.repository.PlantRepository
 import com.wovenledger.app.data.repository.PurchaseBillRepository
 import com.wovenledger.app.data.repository.SalesInvoiceRepository
 import kotlinx.coroutines.CoroutineScope
@@ -11,6 +14,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,12 +37,18 @@ sealed interface SyncState {
  */
 @Singleton
 class SyncManager @Inject constructor(
+    private val plantRepository: PlantRepository,
     private val partyRepository: PartyRepository,
     private val itemRepository: ItemRepository,
     private val salesInvoiceRepository: SalesInvoiceRepository,
     private val purchaseBillRepository: PurchaseBillRepository,
     private val paymentRepository: PaymentRepository
 ) {
+    private companion object {
+        const val TAG = "WovenLedgerSync"
+        const val DEFAULT_PLANT_ID = 1L
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _state = MutableStateFlow<SyncState>(SyncState.Idle)
@@ -50,6 +60,20 @@ class SyncManager @Inject constructor(
     }
 
     /**
+     * Sales invoices and purchase bills carry a foreign key to a plant, and the API does
+     * not expose plants yet, so documents would fail to insert with nothing to point at.
+     * This holds a single placeholder open until /api/plants exists; the document sync
+     * already assigns every document to plant 1.
+     */
+    private suspend fun ensureDefaultPlant() {
+        if (plantRepository.read(DEFAULT_PLANT_ID).first() == null) {
+            plantRepository.create(
+                Plant(id = DEFAULT_PLANT_ID, name = "Main plant", address = "")
+            )
+        }
+    }
+
+    /**
      * Runs every entity sync, each independently: one failing endpoint must not stop
      * the others from refreshing, or a single broken route would leave the whole app
      * stale. Reports failure if any of them failed, naming the first one.
@@ -58,6 +82,7 @@ class SyncManager @Inject constructor(
         _state.value = SyncState.Syncing
 
         val steps = listOf<Pair<String, suspend () -> Unit>>(
+            "plants" to ::ensureDefaultPlant,
             "parties" to partyRepository::syncFromApi,
             "items" to itemRepository::syncFromApi,
             "sales invoices" to salesInvoiceRepository::syncFromApi,
@@ -68,7 +93,12 @@ class SyncManager @Inject constructor(
         val failures = steps.mapNotNull { (name, run) ->
             runCatching { run() }
                 .exceptionOrNull()
-                ?.let { name to (it.message ?: it::class.simpleName ?: "failed") }
+                ?.let { cause ->
+                    // Log with the throwable: the banner only has room for a summary, and
+                    // a constraint violation is unreadable without its stack trace.
+                    Log.w(TAG, "Sync step '$name' failed", cause)
+                    name to (cause.message ?: cause::class.simpleName ?: "failed")
+                }
         }
 
         val result = if (failures.isEmpty()) {

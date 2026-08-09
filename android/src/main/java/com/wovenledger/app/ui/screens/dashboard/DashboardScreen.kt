@@ -112,10 +112,12 @@ fun DashboardScreen(navController: NavHostController) {
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (syncState is SyncState.Failed) {
+        (syncState as? SyncState.Failed)?.let { failure ->
             item {
                 SyncBanner(
-                    message = "Couldn't reach the server. Showing saved data.",
+                    // Name what actually failed; "couldn't reach the server" is wrong
+                    // when the server answered and it was the save that broke.
+                    message = "Showing saved data — sync failed (${failure.message}).",
                     onRetry = viewModel::retrySync,
                 )
             }
