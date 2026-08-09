@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application") version "8.4.0"
     kotlin("android") version "2.0.0"
@@ -5,6 +7,16 @@ plugins {
     kotlin("kapt") version "2.0.0"
     id("com.google.devtools.ksp") version "2.0.0-1.0.21"
     id("com.google.dagger.hilt.android") version "2.52"
+}
+
+/**
+ * Signing credentials come from local.properties, which is gitignored, so the keystore
+ * path and passwords never reach the repository. A machine without them can still build
+ * debug; only assembleRelease needs them.
+ */
+val signing = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
 }
 
 android {
@@ -24,6 +36,21 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            val store = signing.getProperty("storeFile")
+
+            // Absent credentials leave the config empty rather than failing the build,
+            // so a fresh clone can still assemble debug.
+            if (store != null) {
+                storeFile = file(store)
+                storePassword = signing.getProperty("storePassword")
+                keyAlias = signing.getProperty("keyAlias")
+                keyPassword = signing.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -32,6 +59,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Unsigned release APKs cannot be installed at all, so sign whenever the
+            // credentials are present.
+            if (signing.getProperty("storeFile") != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         debug {
             isMinifyEnabled = false
