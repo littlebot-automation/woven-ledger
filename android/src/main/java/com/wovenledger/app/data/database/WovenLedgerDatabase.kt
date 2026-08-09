@@ -24,7 +24,10 @@ import com.wovenledger.app.data.entities.*
         Receipt::class,
         Payment::class
     ],
-    version = 1,
+    // v2 drops the local demo seed. Existing installs carry seeded rows alongside the
+    // synced ones, so the bump exists to discard that database rather than to change
+    // its shape.
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -54,18 +57,14 @@ abstract class WovenLedgerDatabase : RoomDatabase() {
                     WovenLedgerDatabase::class.java,
                     "woven_ledger_database"
                 )
-                    .addCallback(DatabaseCallback(context))
+                    // The database is a cache of the server, never the source of truth,
+                    // so throwing it away and re-syncing is always safe and is simpler
+                    // than migrating it.
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance
             }
-        }
-    }
-
-    private class DatabaseCallback(private val context: Context) : RoomDatabase.Callback() {
-        override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-            super.onCreate(db)
-            DatabaseInitializer.initializeDatabase(context, db)
         }
     }
 }

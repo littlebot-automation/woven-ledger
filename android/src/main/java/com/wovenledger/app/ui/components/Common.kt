@@ -22,7 +22,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.wovenledger.app.ui.theme.WovenDanger
+import com.wovenledger.app.ui.theme.WovenSuccess
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,12 +53,27 @@ fun formatMoney(paise: Long): String {
 
 fun formatDate(date: LocalDate): String = date.format(DATE_FORMAT)
 
+/**
+ * Which side of the ledger a figure sits on. Money owed to us and money we owe read
+ * very differently at a glance, so they are coloured rather than distinguished only
+ * by a caption.
+ */
+enum class MoneyTone { Neutral, Receive, Pay }
+
+@Composable
+fun moneyToneColor(tone: MoneyTone): Color = when (tone) {
+    MoneyTone.Neutral -> MaterialTheme.colorScheme.onSurface
+    MoneyTone.Receive -> WovenSuccess
+    MoneyTone.Pay -> WovenDanger
+}
+
 /** Money and document numbers use a monospace face so columns of figures line up. */
 @Composable
 fun MoneyText(
     paise: Long,
     modifier: Modifier = Modifier,
     emphasis: Boolean = false,
+    tone: MoneyTone = MoneyTone.Neutral,
 ) {
     Text(
         text = formatMoney(paise),
@@ -63,7 +81,7 @@ fun MoneyText(
         fontFamily = FontFamily.Monospace,
         fontWeight = if (emphasis) FontWeight.Bold else FontWeight.Medium,
         style = if (emphasis) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurface,
+        color = moneyToneColor(tone),
     )
 }
 

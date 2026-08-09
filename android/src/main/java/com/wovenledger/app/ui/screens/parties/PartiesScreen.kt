@@ -44,8 +44,10 @@ import com.wovenledger.app.data.repository.PurchaseBillRepository
 import com.wovenledger.app.data.repository.SalesInvoiceRepository
 import com.wovenledger.app.ui.components.DocumentNumberText
 import com.wovenledger.app.ui.components.EmptyState
+import com.wovenledger.app.ui.components.MoneyTone
 import com.wovenledger.app.ui.components.MoneyText
 import com.wovenledger.app.ui.components.formatDate
+import com.wovenledger.app.ui.components.moneyToneColor
 import com.wovenledger.app.ui.navigation.NavigationRoutes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -174,12 +176,15 @@ private fun PartyRow(party: Party, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            val receivable = party.openingBalanceType == BalanceType.TO_RECEIVE
+            val tone = if (receivable) MoneyTone.Receive else MoneyTone.Pay
+
             Column(horizontalAlignment = Alignment.End) {
-                MoneyText(party.openingBalance)
+                MoneyText(party.openingBalance, tone = tone)
                 Text(
-                    text = if (party.openingBalanceType == BalanceType.TO_RECEIVE) "to receive" else "to pay",
+                    text = if (receivable) "to receive" else "to pay",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = moneyToneColor(tone),
                 )
             }
         }
@@ -243,13 +248,13 @@ fun PartyDetailScreen(navController: NavHostController, partyId: Long) {
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    val receivable = party.openingBalanceType == BalanceType.TO_RECEIVE
+                    val tone = if (receivable) MoneyTone.Receive else MoneyTone.Pay
+
                     DetailLine("Balance", null) {
-                        MoneyText(party.openingBalance, emphasis = true)
+                        MoneyText(party.openingBalance, emphasis = true, tone = tone)
                     }
-                    DetailLine(
-                        "Direction",
-                        if (party.openingBalanceType == BalanceType.TO_RECEIVE) "They owe us" else "We owe them",
-                    )
+                    DetailLine("Direction", if (receivable) "They owe us" else "We owe them")
                     if (party.phone.isNotBlank()) DetailLine("Phone", party.phone)
                     if (!party.gstin.isNullOrBlank()) DetailLine("GSTIN", party.gstin)
                     if (party.address.isNotBlank()) DetailLine("Address", party.address)

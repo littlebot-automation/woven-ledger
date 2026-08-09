@@ -32,6 +32,7 @@ import com.wovenledger.app.data.repository.PurchaseBillRepository
 import com.wovenledger.app.data.repository.SalesInvoiceRepository
 import com.wovenledger.app.data.sync.SyncManager
 import com.wovenledger.app.data.sync.SyncState
+import com.wovenledger.app.ui.components.MoneyTone
 import com.wovenledger.app.ui.components.MoneyText
 import com.wovenledger.app.ui.components.SyncBanner
 import com.wovenledger.app.ui.components.formatDate
@@ -129,8 +130,8 @@ fun DashboardScreen(navController: NavHostController) {
 
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatTile("Receivables", data.receivables, Modifier.weight(1f))
-                StatTile("Payables", data.payables, Modifier.weight(1f))
+                StatTile("Receivables", data.receivables, Modifier.weight(1f), MoneyTone.Receive)
+                StatTile("Payables", data.payables, Modifier.weight(1f), MoneyTone.Pay)
             }
         }
 
@@ -160,7 +161,14 @@ fun DashboardScreen(navController: NavHostController) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(party.name, style = MaterialTheme.typography.bodyLarge)
-                        MoneyText(party.openingBalance)
+                        MoneyText(
+                            paise = party.openingBalance,
+                            tone = if (party.openingBalanceType == BalanceType.TO_RECEIVE) {
+                                MoneyTone.Receive
+                            } else {
+                                MoneyTone.Pay
+                            },
+                        )
                     }
                 }
             }
@@ -204,7 +212,12 @@ fun DashboardScreen(navController: NavHostController) {
 }
 
 @Composable
-private fun StatTile(label: String, paise: Long, modifier: Modifier = Modifier) {
+private fun StatTile(
+    label: String,
+    paise: Long,
+    modifier: Modifier = Modifier,
+    tone: MoneyTone = MoneyTone.Neutral,
+) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -215,7 +228,7 @@ private fun StatTile(label: String, paise: Long, modifier: Modifier = Modifier) 
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            MoneyText(paise, emphasis = true)
+            MoneyText(paise, emphasis = true, tone = tone)
         }
     }
 }
