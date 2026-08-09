@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{ page_title }} — {{ settings.companyName }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ asset('css/woven.css') }}">
+</head>
+<body class="wl-standalone">
+
+<div id="wl-app">
+  <aside class="wl-sidebar">
+    <div class="wl-sidebar-head weave">
+      <div class="wl-brand">
+        <div class="wl-brand-mark">▨</div>
+        <div>
+          <div class="wl-brand-name">Woven Ledger</div>
+          <div class="wl-brand-sub">PP Bag Manufacturing ERP</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="wl-nav">
+      {% for group in wl_nav() %}
+        <div class="wl-nav-group-label">{{ group.group }}</div>
+        {% for item in group.items %}
+          {% if item.route is defined %}
+            {% set href = path(item.route) %}
+          {% else %}
+            {# EasyAdmin's query-string URL form — needs no AdminContext to build. #}
+            {% set href = path('admin', {crudControllerFqcn: item.controller, crudAction: 'index'}) %}
+          {% endif %}
+          <a class="wl-nav-item{{ active_nav == item.id ? ' active' : '' }}" href="{{ href }}">
+            <span class="ic">{{ item.icon }}</span>{{ item.label }}
+          </a>
+        {% endfor %}
+      {% endfor %}
+    </nav>
+
+    <div class="wl-sidebar-foot">
+      {{ settings.companyName }}
+    </div>
+  </aside>
+
+  <main class="wl-main">
+    <header class="wl-topbar">
+      <div>
+        <h1>{{ page_title }}</h1>
+        {% if page_subtitle %}
+          <div class="wl-topbar-sub">{{ page_subtitle }}</div>
+        {% endif %}
+      </div>
+      <div class="wl-topbar-right">
+        {% if settings.currentPlant %}
+          <span class="wl-plant-pill">🏭 {{ settings.currentPlant.name }}</span>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="wl-content">
+      {% for label, messages in app.flashes %}
+        {% for message in messages %}
+          <div class="wl-flash wl-flash-{{ label }}">{{ message }}</div>
+        {% endfor %}
+      {% endfor %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+
+{% block javascripts %}{% endblock %}
+</body>
+</html>

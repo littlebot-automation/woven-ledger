@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Invoice {{ invoice.no }}</title>
+<style>
+  *{box-sizing:border-box;}
+  body{font-family:'Inter',system-ui,sans-serif;color:#20242B;margin:0;padding:28px;background:#fff;}
+  h1{font-family:'Sora',system-ui,sans-serif;margin:0;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1D3557;padding-bottom:14px;margin-bottom:18px;}
+  .company{font-size:19px;font-weight:700;color:#1D3557;}
+  .muted{color:#565F6B;font-size:12.5px;line-height:1.5;}
+  .doc-title{font-size:17px;font-weight:700;text-align:right;color:#1D3557;}
+  .meta{display:flex;gap:40px;margin-bottom:18px;font-size:13px;}
+  .meta .label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#565F6B;font-weight:600;margin-bottom:3px;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th,td{padding:8px 10px;border-bottom:1px solid #E3DDCE;text-align:left;}
+  th{background:#F5F2EA;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;}
+  td.num,th.num{text-align:right;}
+  .totals{margin-top:14px;margin-left:auto;width:290px;font-size:13px;}
+  .totals div{display:flex;justify-content:space-between;padding:6px 0;}
+  .totals .grand{border-top:2px solid #1D3557;margin-top:6px;padding-top:10px;font-size:15px;font-weight:700;}
+  .notes{margin-top:20px;font-size:12.5px;}
+  .sign{margin-top:52px;display:flex;justify-content:flex-end;}
+  .sign div{border-top:1px solid #20242B;padding-top:6px;font-size:12px;width:210px;text-align:center;}
+  @media print{ body{padding:0;} }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div>
+    <div class="company">{{ settings.companyName }}</div>
+    <div class="muted">
+      {% if settings.address %}{{ settings.address|nl2br }}<br>{% endif %}
+      {% if settings.phone %}Phone: {{ settings.phone }}<br>{% endif %}
+      {% if settings.gstin %}GSTIN: {{ settings.gstin }}{% endif %}
+    </div>
+  </div>
+  <div class="doc-title">TAX INVOICE</div>
+</div>
+
+<div class="meta">
+  <div>
+    <div class="label">Invoice No</div>
+    <div class="mono"><strong>{{ invoice.no }}</strong></div>
+  </div>
+  <div>
+    <div class="label">Date</div>
+    <div>{{ invoice.date|date('d M Y') }}</div>
+  </div>
+  <div>
+    <div class="label">Plant</div>
+    <div>{{ invoice.plant ? invoice.plant.name : '—' }}</div>
+  </div>
+  <div>
+    <div class="label">Buyer</div>
+    <div>
+      <strong>{{ invoice.party ? invoice.party.name : '—' }}</strong>
+      {% if invoice.party %}
+        <div class="muted">
+          {% if invoice.party.address %}{{ invoice.party.address }}<br>{% endif %}
+          {% if invoice.party.gstin %}GSTIN: {{ invoice.party.gstin }}{% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:34px;">#</th>
+      <th>Item</th>
+      <th>HSN</th>
+      <th class="num">Qty</th>
+      <th class="num">Rate</th>
+      <th class="num">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in invoice.lines %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ line.item ? line.item.name : '—' }}</td>
+        <td class="mono">{{ line.item and line.item.hsn ? line.item.hsn : '—' }}</td>
+        <td class="num mono">{{ line.qty|qty }} {{ line.item ? line.item.unit : '' }}</td>
+        <td class="num mono">{{ line.rate|inr }}</td>
+        <td class="num mono">{{ line.amount|inr }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">No line items.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="totals">
+  <div><span>Subtotal</span><span class="mono">{{ invoice.subtotal|inr }}</span></div>
+  {% if invoice.discount > 0 %}
+    <div><span>Discount</span><span class="mono">− {{ invoice.discount|inr }}</span></div>
+  {% endif %}
+  <div class="grand"><span>Total</span><span class="mono">{{ invoice.total|inr }}</span></div>
+</div>
+
+{% if invoice.notes %}
+  <div class="notes"><strong>Notes:</strong> {{ invoice.notes|nl2br }}</div>
+{% endif %}
+
+<div class="sign"><div>For {{ settings.companyName }}</div></div>
+
+<script>window.addEventListener('load', function(){ window.print(); });</script>
+</body>
+</html>

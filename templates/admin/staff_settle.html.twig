@@ -1,0 +1,76 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block content %}
+  <div class="wl-card wl-card-pad" style="max-width:640px;">
+    <form method="post">
+      <div class="wl-field">
+        <label for="staff">Staff Member</label>
+        <select name="staff" id="staff">
+          <option value="">Select</option>
+          {% for row in outstanding %}
+            <option value="{{ row.staff.id }}"
+                    data-count="{{ row.count }}"
+                    data-total="{{ row.total|inr }}"
+                    {{ selected and selected.id == row.staff.id ? 'selected' : '' }}>
+              {{ row.staff.name }} — unpaid {{ row.total|inr }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <p class="wl-note" id="settle-preview">
+        Choose a staff member to see what will be settled.
+      </p>
+
+      <div class="wl-grid-2">
+        <div class="wl-field">
+          <label for="date">Payment Date</label>
+          <input type="date" name="date" id="date" value="{{ today }}">
+        </div>
+        <div class="wl-field">
+          <label for="mode">Mode</label>
+          <select name="mode" id="mode">
+            {% for label, value in modes %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <p class="wl-note">
+        This creates one payment voucher — next number will be
+        <strong class="mono">{{ next_payment_no }}</strong> — and marks every unpaid
+        entry for that staff member as paid against it.
+      </p>
+
+      <div class="wl-form-actions">
+        <a class="wl-btn wl-btn-secondary" href="{{ back_url }}">Cancel</a>
+        <button class="wl-btn wl-btn-accent" type="submit">Generate Payment</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function () {
+  var select = document.getElementById('staff');
+  var preview = document.getElementById('settle-preview');
+  if (!select || !preview) return;
+
+  function update() {
+    var opt = select.options[select.selectedIndex];
+    var count = opt && opt.getAttribute('data-count');
+    if (!count) {
+      preview.textContent = 'Choose a staff member to see what will be settled.';
+      return;
+    }
+    preview.innerHTML = count + ' unpaid ' + (count === '1' ? 'entry' : 'entries') +
+      ' totalling <strong>' + opt.getAttribute('data-total') + '</strong> will be marked paid.';
+  }
+
+  select.addEventListener('change', update);
+  update();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+#!/bin/sh
+# Gradle wrapper script - downloads gradle if needed
+# This is a minimal wrapper for building without gradle installed
+
+set -e
+
+GRADLE_VERSION="8.7"
+GRADLE_HOME="${HOME}/.gradle/wrapper/gradle-${GRADLE_VERSION}"
+GRADLE_ZIP="${HOME}/.gradle/wrapper/gradle-${GRADLE_VERSION}.zip"
+GRADLE_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+
+if [ ! -d "$GRADLE_HOME" ]; then
+    echo "Downloading Gradle $GRADLE_VERSION..."
+    mkdir -p "$(dirname "$GRADLE_ZIP")"
+    
+    # Try downloading
+    if command -v wget >/dev/null 2>&1; then
+        wget -q "$GRADLE_URL" -O "$GRADLE_ZIP"
+    elif command -v curl >/dev/null 2>&1; then
+        curl -s -o "$GRADLE_ZIP" "$GRADLE_URL"
+    else
+        echo "Error: Neither wget nor curl found. Cannot download Gradle."
+        exit 1
+    fi
+    
+    unzip -q "$GRADLE_ZIP" -d "$(dirname "$GRADLE_HOME")"
+    rm "$GRADLE_ZIP"
+fi
+
+exec "$GRADLE_HOME/bin/gradle" "$@"

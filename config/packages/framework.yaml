@@ -1,0 +1,26 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    session:
+        handler_id: null
+        cookie_secure: auto
+        cookie_samesite: lax
+    php_errors:
+        log: true
+    default_locale: en
+    set_locale_from_accept_language: false
+    assets:
+        # There is no build pipeline, so asset() emits bare URLs and browsers
+        # cache public/css/woven.css and public/js/woven.js indefinitely —
+        # edits appear not to take effect until a manual hard reload.
+        # Bump this whenever either file changes.
+        version: 'v2'
+    trusted_proxies:
+        - '172.64.0.0/13'
+        - '104.16.0.0/13'
+        - '104.24.0.0/14'
+
+when@test:
+    framework:
+        test: true
+        session:
+            storage_factory_id: session.storage.factory.mock_file

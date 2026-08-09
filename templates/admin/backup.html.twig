@@ -1,0 +1,50 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block content %}
+  <div class="wl-grid-2">
+    <div class="wl-card wl-card-pad">
+      <div class="wl-section-title">Export</div>
+      <p class="wl-note">
+        Downloads every record as a single JSON file — settings, plants, parties,
+        items with plant-wise stock, staff, work entries, invoices, bills, receipts
+        and payments. Keep it somewhere safe.
+      </p>
+
+      <div class="wl-table-wrap" style="margin:12px 0;">
+        <table>
+          <tbody>
+            {% for label, count in counts %}
+              <tr><td>{{ label }}</td><td class="num mono">{{ count }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <a class="wl-btn wl-btn-accent" href="{{ path('admin_backup_export') }}">⬇ Download Backup</a>
+    </div>
+
+    <div class="wl-card wl-card-pad">
+      <div class="wl-section-title">Restore</div>
+      <div class="wl-warn-box">
+        Restoring <strong>replaces everything</strong> currently in the database.
+        This cannot be undone — export first if you are unsure.
+      </div>
+
+      <form method="post" action="{{ path('admin_backup_import') }}" enctype="multipart/form-data">
+        <div class="wl-field">
+          <label for="backup">Backup file (.json)</label>
+          <input type="file" name="backup" id="backup" accept="application/json,.json" required>
+        </div>
+
+        <label class="wl-check">
+          <input type="checkbox" name="confirm" value="1">
+          I understand this will erase all existing data and replace it.
+        </label>
+
+        <div class="wl-form-actions">
+          <button class="wl-btn wl-btn-danger" type="submit">Restore From Backup</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

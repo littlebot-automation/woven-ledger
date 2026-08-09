@@ -1,0 +1,17 @@
+# The original portal has no authentication layer — it is a single-tenant local app.
+# The replica keeps that behaviour: one anonymous firewall, everything public.
+security:
+    providers:
+        in_memory:
+            memory: ~
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+        main:
+            lazy: true
+            provider: in_memory
+
+    access_control:
+        - { path: ^/, roles: PUBLIC_ACCESS }

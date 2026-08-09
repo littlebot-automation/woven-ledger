@@ -1,0 +1,96 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller\Admin;
+
+use App\Entity\Settings;
+use App\Repository\SettingsRepository;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
+use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * The single configuration row. There is nothing to list and nothing to create,
+ * so the index redirects straight into editing it.
+ */
+class SettingsCrudController extends AbstractCrudController
+{
+    public function __construct(
+        private readonly SettingsRepository $settingsRepository,
+        private readonly AdminUrlGenerator $adminUrlGenerator,
+    ) {
+    }
+
+    public static function getEntityFqcn(): string
+    {
+        return Settings::class;
+    }
+
+    public function configureCrud(Crud $crud): Crud
+    {
+        return $crud
+            ->setEntityLabelInSingular('Business Settings')
+            ->setEntityLabelInPlural('Business Settings')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Business Settings')
+            ->setHelp(Crud::PAGE_EDIT, 'Company details, plants, numbering & data');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions
+            ->disable(Action::NEW, Action::DELETE, Action::BATCH_DELETE);
+    }
+
+    public function index(AdminContext $context): Response
+    {
+        $settings = $this->settingsRepository->getSettings();
+
+        return $this->redirect(
+            $this->adminUrlGenerator
+                ->setController(self::class)
+                ->setAction(Action::EDIT)
+                ->setEntityId($settings->getId())
+                ->generateUrl()
+        );
+    }
+
+    public function configureFields(string $pageName): iterable
+    {
+        yield FormField::addPanel('Company');
+        yield TextField::new('companyName', 'Company Name');
+        yield TextareaField::new('address', 'Address');
+        yield TextField::new('phone', 'Phone');
+        yield TextField::new('gstin', 'GSTIN');
+
+        yield FormField::addPanel('Document Numbering');
+        yield TextField::new('invoicePrefix', 'Sales Invoice Prefix');
+        yield IntegerField::new('nextInvoiceNo', 'Next Invoice No');
+        yield TextField::new('purchasePrefix', 'Purchase Bill Prefix');
+        yield IntegerField::new('nextPurchaseNo', 'Next Bill No');
+        yield TextField::new('receiptPrefix', 'Receipt Prefix');
+        yield IntegerField::new('nextReceiptNo', 'Next Receipt No');
+        yield TextField::new('paymentPrefix', 'Payment Prefix');
+        yield IntegerField::new('nextPaymentNo', 'Next Payment No');
+
+        yield FormField::addPanel('Defaults');
+        yield NumberField::new('lowStockDefault', 'Low Stock Default')
+            ->setNumDecimals(3)
+            ->setHelp('Used for any item without its own threshold');
+        yield MoneyField::new('defaultWage', 'Default Wage')
+            ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2);
+        yield AssociationField::new('currentPlant', 'Active Plant')
+            ->setHelp('Shown in the top bar and used as the default on new documents');
+    }
+}

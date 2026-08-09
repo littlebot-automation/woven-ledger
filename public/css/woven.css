@@ -1,0 +1,431 @@
+/* ==========================================================================
+   Woven Ledger — theme
+   Ported from the original portal's design tokens. Drives both shells: the
+   standalone pages' own layout and EasyAdmin's CRUD chrome.
+   ========================================================================== */
+
+:root {
+  --wl-bg: #F5F2EA;
+  --wl-surface: #FFFFFF;
+  --wl-ink: #20242B;
+  --wl-ink-soft: #565F6B;
+  --wl-primary: #1D3557;
+  --wl-primary-dark: #142238;
+  --wl-primary-tint: #E7ECF3;
+  --wl-accent: #C97A2B;
+  --wl-accent-tint: #F7E7D4;
+  --wl-success: #2A9D4A;
+  --wl-success-tint: #E3F5E8;
+  --wl-danger: #C0392B;
+  --wl-danger-tint: #FBE8E5;
+  --wl-border: #E3DDCE;
+  --wl-border-soft: #EDE8DC;
+  --wl-radius: 10px;
+  --wl-shadow: 0 1px 2px rgba(29, 53, 87, .06), 0 4px 16px rgba(29, 53, 87, .06);
+  --wl-sidebar-w: 250px;
+  --wl-font-head: 'Sora', system-ui, sans-serif;
+  --wl-font-body: 'Inter', system-ui, sans-serif;
+  --wl-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* The brand signature: a woven twill texture. */
+.weave {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .05) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .08) 0 2px, transparent 2px 9px);
+}
+
+.mono, .wl-kpi-val, td.num, .wl-total { font-family: var(--wl-font-mono); }
+
+/* ==========================================================================
+   Standalone shell (dashboard, reports, ledger, adjust, settle, backup)
+   ========================================================================== */
+
+body.wl-standalone {
+  margin: 0;
+  font-family: var(--wl-font-body);
+  background: var(--wl-bg);
+  color: var(--wl-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+body.wl-standalone h1,
+body.wl-standalone h2,
+body.wl-standalone h3 {
+  font-family: var(--wl-font-head);
+  letter-spacing: -.01em;
+  margin: 0;
+}
+
+#wl-app { display: flex; min-height: 100vh; }
+
+.wl-sidebar {
+  width: var(--wl-sidebar-w);
+  background: var(--wl-primary-dark);
+  color: #EAF0F8;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+}
+
+.wl-sidebar-head {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, .09);
+}
+
+.wl-brand { display: flex; align-items: center; gap: 10px; }
+
+.wl-brand-mark {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  background: var(--wl-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex: none; color: #fff;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .18) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, .18) 0 2px, transparent 2px 6px);
+}
+
+.wl-brand-name { font-family: var(--wl-font-head); font-weight: 700; font-size: 15.5px; line-height: 1.15; }
+.wl-brand-sub { font-size: 10.5px; color: #9FB0C6; letter-spacing: .04em; text-transform: uppercase; margin-top: 2px; }
+
+.wl-nav { flex: 1; overflow-y: auto; padding: 10px 10px 14px; }
+
+.wl-nav-group-label {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em;
+  color: #7E90A8; margin: 14px 10px 6px; font-weight: 600;
+}
+
+.wl-nav-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 12px; border-radius: 8px;
+  color: #C9D6E6; font-size: 13.6px; font-weight: 500;
+  text-decoration: none; margin-bottom: 2px;
+}
+.wl-nav-item .ic { width: 19px; text-align: center; font-size: 15px; }
+.wl-nav-item:hover { background: rgba(255, 255, 255, .06); color: #fff; }
+.wl-nav-item.active { background: var(--wl-accent); color: #fff; font-weight: 600; }
+
+.wl-sidebar-foot {
+  padding: 12px 16px 16px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+  font-size: 11px; color: #7E90A8;
+}
+
+.wl-main { margin-left: var(--wl-sidebar-w); flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.wl-topbar {
+  background: var(--wl-surface);
+  border-bottom: 1px solid var(--wl-border);
+  padding: 14px 26px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 20;
+}
+.wl-topbar h1 { font-size: 19px; }
+.wl-topbar-sub { font-size: 12.5px; color: var(--wl-ink-soft); margin-top: 2px; }
+.wl-topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.wl-plant-pill {
+  font-size: 12px; background: var(--wl-primary-tint); color: var(--wl-primary);
+  padding: 6px 12px; border-radius: 20px; font-weight: 600;
+}
+
+.wl-content { padding: 22px 26px 60px; flex: 1; }
+
+/* ==========================================================================
+   Shared building blocks
+   ========================================================================== */
+
+.wl-card {
+  background: var(--wl-surface);
+  border: 1px solid var(--wl-border);
+  border-radius: var(--wl-radius);
+  box-shadow: var(--wl-shadow);
+}
+.wl-card-pad { padding: 18px 20px; }
+
+.wl-section-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; font-family: var(--wl-font-head); }
+.wl-flex-between { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.wl-total { font-weight: 700; font-size: 15px; }
+
+.wl-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.wl-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.wl-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 1050px) {
+  .wl-grid-4, .wl-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .wl-grid-4, .wl-grid-3, .wl-grid-2 { grid-template-columns: 1fr; }
+  .wl-sidebar { transform: translateX(-100%); }
+  .wl-main { margin-left: 0; }
+}
+
+/* KPI tiles carry a coloured strip down the left edge. */
+.wl-kpi { position: relative; padding: 16px 18px 16px 22px; overflow: hidden; }
+.wl-kpi-strip { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--wl-primary); }
+.wl-kpi.k-accent  .wl-kpi-strip { background: var(--wl-accent); }
+.wl-kpi.k-success .wl-kpi-strip { background: var(--wl-success); }
+.wl-kpi.k-danger  .wl-kpi-strip { background: var(--wl-danger); }
+.wl-kpi.k-primary .wl-kpi-strip { background: var(--wl-primary); }
+.wl-kpi-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--wl-ink-soft); font-weight: 600; }
+.wl-kpi-val { font-size: 21px; font-weight: 700; margin-top: 6px; }
+.wl-kpi-note { font-size: 11.5px; color: var(--wl-ink-soft); margin-top: 4px; }
+
+.wl-table-wrap { overflow-x: auto; }
+.wl-table-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.wl-table-wrap th, .wl-table-wrap td { padding: 9px 12px; border-bottom: 1px solid var(--wl-border-soft); text-align: left; }
+.wl-table-wrap th {
+  background: var(--wl-bg); font-weight: 600; font-size: 11.5px;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--wl-ink-soft);
+}
+.wl-table-wrap td.num, .wl-table-wrap th.num { text-align: right; }
+.wl-table-wrap tbody tr:hover { background: var(--wl-bg); }
+
+.wl-tag {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 3px 9px; border-radius: 20px;
+  background: var(--wl-primary-tint); color: var(--wl-primary);
+}
+.wl-tag.amber { background: var(--wl-accent-tint); color: #8A4E12; }
+.wl-tag.blue  { background: var(--wl-primary-tint); color: var(--wl-primary); }
+
+.wl-stock-cell { display: inline-block; white-space: nowrap; margin-right: 14px; }
+.wl-stock-cell small { color: var(--wl-ink-soft); font-size: 10.5px; }
+.wl-li-amount { font-family: var(--wl-font-mono); font-size: 13px; align-self: center; }
+
+.wl-bal-pos { color: var(--wl-success); font-weight: 600; }
+.wl-bal-neg { color: var(--wl-danger); font-weight: 600; }
+.wl-bal-zero { color: var(--wl-ink-soft); }
+.wl-stock-low { color: var(--wl-danger); font-weight: 700; }
+
+.wl-empty { text-align: center; padding: 34px 18px; color: var(--wl-ink-soft); }
+.wl-empty-icon { font-size: 30px; margin-bottom: 8px; }
+.wl-empty-text { font-size: 13px; }
+
+.wl-chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.wl-chip {
+  padding: 7px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 600;
+  background: var(--wl-surface); border: 1px solid var(--wl-border);
+  color: var(--wl-ink-soft); text-decoration: none;
+}
+.wl-chip:hover { border-color: var(--wl-accent); color: var(--wl-accent); }
+.wl-chip.active { background: var(--wl-accent); border-color: var(--wl-accent); color: #fff; }
+
+.wl-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.wl-inline-form { display: flex; align-items: center; gap: 10px; }
+.wl-inline-form label { margin: 0; font-size: 12px; font-weight: 600; color: var(--wl-ink-soft); }
+
+.wl-field { margin-bottom: 14px; }
+.wl-field label { display: block; font-size: 12px; font-weight: 600; color: var(--wl-ink-soft); margin-bottom: 5px; }
+
+body.wl-standalone input[type=text],
+body.wl-standalone input[type=number],
+body.wl-standalone input[type=date],
+body.wl-standalone input[type=file],
+body.wl-standalone select,
+body.wl-standalone textarea {
+  width: 100%; padding: 9px 11px; font-size: 13.5px; font-family: inherit;
+  border: 1px solid var(--wl-border); border-radius: 8px;
+  background: var(--wl-surface); color: var(--wl-ink);
+}
+body.wl-standalone input:focus, body.wl-standalone select:focus, body.wl-standalone textarea:focus {
+  outline: none; border-color: var(--wl-accent); box-shadow: 0 0 0 3px var(--wl-accent-tint);
+}
+
+.wl-check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; margin: 10px 0; }
+.wl-check input { margin-top: 2px; }
+
+.wl-btn {
+  display: inline-block; padding: 9px 16px; border-radius: 8px;
+  font-size: 13.5px; font-weight: 600; font-family: inherit;
+  border: 1px solid var(--wl-border); background: var(--wl-surface);
+  color: var(--wl-ink); cursor: pointer; text-decoration: none;
+}
+.wl-btn:hover { border-color: var(--wl-accent); }
+.wl-btn-accent { background: var(--wl-accent); border-color: var(--wl-accent); color: #fff; }
+.wl-btn-accent:hover { background: #B26A22; }
+.wl-btn-danger { background: var(--wl-danger); border-color: var(--wl-danger); color: #fff; }
+.wl-btn-secondary { background: var(--wl-surface); color: var(--wl-ink-soft); }
+.wl-form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+.wl-note { font-size: 12px; color: var(--wl-ink-soft); line-height: 1.6; margin: 10px 0; }
+.wl-warn-box {
+  background: var(--wl-danger-tint); border: 1px solid #F0C4BD; color: #8C2A1E;
+  padding: 11px 13px; border-radius: 8px; font-size: 12.5px; line-height: 1.55; margin-bottom: 14px;
+}
+.wl-ledger-foot { border-top: 1px solid var(--wl-border); font-size: 14px; }
+
+.wl-flash {
+  padding: 11px 14px; border-radius: 8px; font-size: 13px;
+  margin-bottom: 12px; border: 1px solid transparent;
+}
+.wl-flash-success { background: var(--wl-success-tint); border-color: #BFE6CB; color: #1C6B33; }
+.wl-flash-danger  { background: var(--wl-danger-tint);  border-color: #F0C4BD; color: #8C2A1E; }
+.wl-flash-warning { background: var(--wl-accent-tint);  border-color: #E9CBA6; color: #8A4E12; }
+.wl-flash-info    { background: var(--wl-primary-tint); border-color: #C9D6E6; color: var(--wl-primary); }
+
+/* ==========================================================================
+   EasyAdmin CRUD grids inside the standalone shell
+
+   NOTE: templates/bundles/EasyAdminBundle/layout.html.twig renders CRUD pages
+   with <body class="wl-standalone">, not EasyAdmin's own <body class="ea …">.
+   So the `body.ea` block further down never matches on these pages — anything
+   that must affect a CRUD grid has to be scoped here instead.
+   ========================================================================== */
+
+.wl-content article.content,
+.wl-content #main.content-body { min-width: 0; max-width: 100%; }
+
+/* A grid wider than the content area scrolls horizontally instead of being
+   clipped off-screen. #main.content-body is the table's direct parent.
+   Caveat: this makes it a scroll container, which would normally clip the
+   row-action dropdowns; woven.js switches those to Popper's "fixed" strategy
+   so they render outside the clip. Changing one without the other regresses. */
+.wl-content #main.content-body { overflow-x: auto; }
+
+.wl-content table.datagrid { width: 100%; table-layout: auto; }
+.wl-content table.datagrid th { white-space: nowrap; }
+.wl-content table.datagrid td { overflow-wrap: break-word; }
+
+/* Row checkboxes and the actions column must stay at their natural size. */
+.wl-content table.datagrid td.batch-actions-selector,
+.wl-content table.datagrid td.actions { width: 1%; white-space: nowrap; }
+.wl-content table.datagrid input[type=checkbox] { width: auto; }
+
+/* ==========================================================================
+   EasyAdmin chrome — restyled to match the shell above
+   ========================================================================== */
+
+body.ea { background: var(--wl-bg); font-family: var(--wl-font-body); color: var(--wl-ink); }
+body.ea h1, body.ea h2, body.ea h3 { font-family: var(--wl-font-head); }
+
+.ea .sidebar-wrapper, .ea #main-menu, .ea .main-sidebar {
+  background: var(--wl-primary-dark) !important;
+}
+.ea .menu-item a, .ea .menu-item .menu-link { color: #C9D6E6; font-size: 13.6px; font-weight: 500; }
+.ea .menu-item a:hover { background: rgba(255, 255, 255, .06); color: #fff; }
+.ea .menu-item.active > a, .ea .menu-item .menu-link.active {
+  background: var(--wl-accent) !important; color: #fff !important; font-weight: 600;
+}
+.ea .menu-header, .ea .menu-item .menu-header-contents {
+  color: #7E90A8; font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; font-weight: 600;
+}
+
+.ea .content-header-title, .ea h1.title { font-family: var(--wl-font-head); font-size: 19px; }
+.ea .content-panel, .ea .datagrid, .ea .form-panel, .ea .card {
+  background: var(--wl-surface);
+  border: 1px solid var(--wl-border);
+  border-radius: var(--wl-radius);
+  box-shadow: var(--wl-shadow);
+}
+
+.ea table thead th {
+  background: var(--wl-bg); color: var(--wl-ink-soft);
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600;
+}
+.ea table td, .ea table th { border-bottom: 1px solid var(--wl-border-soft); }
+.ea table tbody tr:hover { background: var(--wl-bg); }
+
+/* EasyAdmin main content area — make form fields full width */
+.ea .content-wrapper { width: 100% !important; max-width: 100% !important; }
+.ea article.content { width: 100% !important; max-width: 100% !important; }
+.ea #main { width: 100% !important; max-width: 100% !important; }
+.ea .content-body { width: 100% !important; max-width: 100% !important; }
+body.ea .form-panel { width: 100% !important; }
+body.ea .form-wrapper { width: 100% !important; }
+body.ea [class*="col-sm-"], body.ea [class*="col-md-"], body.ea [class*="col-lg-"] { width: 100% !important; max-width: 100% !important; }
+
+.ea .btn-primary, .ea .action-new .btn, .ea .btn-save {
+  background: var(--wl-accent); border-color: var(--wl-accent); color: #fff;
+}
+.ea .btn-primary:hover, .ea .btn-save:hover { background: #B26A22; border-color: #B26A22; }
+.ea .badge-primary { background: var(--wl-primary-tint); color: var(--wl-primary); }
+.ea .badge-warning { background: var(--wl-accent-tint); color: #8A4E12; }
+.ea .badge-success { background: var(--wl-success-tint); color: #1C6B33; }
+.ea .badge-danger  { background: var(--wl-danger-tint);  color: #8C2A1E; }
+
+.ea .form-control:focus, .ea .form-select:focus {
+  border-color: var(--wl-accent); box-shadow: 0 0 0 3px var(--wl-accent-tint);
+}
+
+/* Field-level helpers applied from PHP via addCssClass(). */
+.ea .mono, .ea .field-money, .ea td.field-money, .ea .field-integer { font-family: var(--wl-font-mono); }
+
+/* EasyAdmin form layout improvements — wider fields and better spacing */
+.ea .form-group { margin-bottom: 18px; width: 100% !important; }
+.ea .form-group label { font-size: 12px; font-weight: 600; color: var(--wl-ink-soft); margin-bottom: 6px; display: block; }
+/* Text-like controls only. Checkboxes and radios must keep their intrinsic
+   size — stretching them to 100% blows out the datagrid's select column. */
+.ea .form-control, .ea .form-select, .ea textarea, .ea select,
+.ea input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]):not([type=file]) {
+  width: 100% !important; max-width: 100% !important; padding: 9px 11px; font-size: 13.5px;
+  border: 1px solid var(--wl-border); border-radius: 8px;
+  background: var(--wl-surface); color: var(--wl-ink); font-family: inherit; box-sizing: border-box;
+}
+.ea input[type=checkbox], .ea input[type=radio], .ea .form-check-input {
+  width: auto !important; max-width: none !important; padding: 0; border-radius: 3px;
+}
+.ea .form-control:focus, .ea .form-select:focus, .ea input:focus, .ea textarea:focus, .ea select:focus {
+  outline: none; border-color: var(--wl-accent); box-shadow: 0 0 0 3px var(--wl-accent-tint);
+}
+
+/* Override EasyAdmin's form width constraints */
+.ea .form-wrapper { width: 100% !important; max-width: 100% !important; }
+.ea .form-panel { width: 100% !important; max-width: 100% !important; padding: 20px !important; }
+.ea .content-panel { width: 100% !important; max-width: 100% !important; }
+.ea .form-row { display: grid; grid-template-columns: 1fr !important; gap: 18px; width: 100% !important; }
+.ea .form-row.form-row-cols-2 { grid-template-columns: repeat(2, 1fr) !important; }
+.ea .form-row.form-row-cols-3 { grid-template-columns: repeat(3, 1fr) !important; }
+.ea .col, .ea [class*='col-'] { width: 100% !important; }
+
+/* Fieldsets and groups */
+.ea fieldset { border: none; padding: 0; margin-bottom: 20px; width: 100% !important; }
+.ea fieldset > legend { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: var(--wl-ink); }
+
+/* Money field layout fix */
+.ea .input-group {
+  display: flex !important; align-items: center; gap: 0; width: 100% !important;
+  border: 1px solid var(--wl-border); border-radius: 8px; padding: 0;
+  background: var(--wl-surface);
+}
+.ea .input-group-prepend, .ea .input-group-append {
+  display: flex !important; align-items: center; padding: 0 8px; background: transparent; border: none;
+  font-size: 14px; color: var(--wl-ink-soft);
+}
+.ea .input-group .form-control {
+  flex: 1 !important; border: none !important; padding: 9px 6px; font-size: 13.5px;
+  background: transparent; box-shadow: none !important;
+}
+.ea .input-group .form-control:focus {
+  outline: none; box-shadow: none !important;
+}
+.ea .field-money, .ea .field-text[data-fieldtype="money"] {
+  width: 100% !important;
+}
+
+/* Textarea styling */
+.ea textarea.form-control, .ea textarea { resize: vertical; min-height: 100px; width: 100% !important; }
+
+/* Form action buttons */
+.ea .form-actions, .ea .form-actions-row { display: flex; gap: 10px; justify-content: flex-start; margin-top: 22px; width: 100% !important; }
+
+/* Line-item collections render as a row grid, not a stack of labelled fields. */
+.wl-line-items .form-widget-compound > .row,
+.wl-line-items .field-collection-item {
+  display: grid;
+  grid-template-columns: 3fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--wl-border);
+}
+.wl-line-items .field-collection-item .form-group { margin-bottom: 0; }
+.wl-line-items label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.wl-li-qty, .wl-li-rate { font-family: var(--wl-font-mono); text-align: right; }
+
+@media (max-width: 760px) {
+  .wl-line-items .form-widget-compound > .row,
+  .wl-line-items .field-collection-item { grid-template-columns: 1fr; }
+}

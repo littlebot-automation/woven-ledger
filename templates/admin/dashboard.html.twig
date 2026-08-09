@@ -1,0 +1,145 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block content %}
+  <div class="wl-grid-4">
+    <div class="wl-card wl-kpi k-accent">
+      <div class="wl-kpi-strip"></div>
+      <div class="wl-kpi-label">Total Sales</div>
+      <div class="wl-kpi-val mono">{{ data.totalSales|inr }}</div>
+    </div>
+    <div class="wl-card wl-kpi k-primary">
+      <div class="wl-kpi-strip"></div>
+      <div class="wl-kpi-label">Total Purchases</div>
+      <div class="wl-kpi-val mono">{{ data.totalPurchases|inr }}</div>
+    </div>
+    <div class="wl-card wl-kpi k-success">
+      <div class="wl-kpi-strip"></div>
+      <div class="wl-kpi-label">Cash In (Receipts)</div>
+      <div class="wl-kpi-val mono">{{ data.cashIn|inr }}</div>
+    </div>
+    <div class="wl-card wl-kpi k-danger">
+      <div class="wl-kpi-strip"></div>
+      <div class="wl-kpi-label">Cash Out (Payments)</div>
+      <div class="wl-kpi-val mono">{{ data.cashOut|inr }}</div>
+    </div>
+  </div>
+
+  <div class="wl-grid-3" style="margin-top:14px;">
+    <div class="wl-card wl-kpi k-success">
+      <div class="wl-kpi-strip"></div>
+      <div class="wl-kpi-label">Outstanding Receivable</div>
+      <div class="wl-kpi-val mono">{{ data.receivableTotal|inr }}</div>
+      <div class="wl-kpi-note">Money buyers owe you</div>
+    </div>
+    <div class="wl-card wl-kpi k-danger">
+      <div class="wl-kpi-strip"></div>
+      <div class="wl-kpi-label">Outstanding Payable</div>
+      <div class="wl-kpi-val mono">{{ data.payableTotal|inr }}</div>
+      <div class="wl-kpi-note">Money you owe suppliers</div>
+    </div>
+    <div class="wl-card wl-kpi k-accent">
+      <div class="wl-kpi-strip"></div>
+      <div class="wl-kpi-label">Unpaid Wages</div>
+      <div class="wl-kpi-val mono">{{ data.unpaidWages|inr }}</div>
+      <div class="wl-kpi-note">Logged work not yet settled</div>
+    </div>
+  </div>
+
+  <div class="wl-grid-2" style="margin-top:14px;">
+    <div class="wl-card wl-card-pad">
+      <div class="wl-section-title">Low Stock</div>
+      {% if data.lowStockRows is empty %}
+        {% include 'admin/_empty_state.html.twig' with {icon: '✅', text: 'Every item is above its threshold.'} %}
+      {% else %}
+        <div class="wl-table-wrap">
+          <table>
+            <thead><tr><th>Item</th><th>Plant</th><th class="num">On Hand</th><th class="num">Threshold</th></tr></thead>
+            <tbody>
+              {% for row in data.lowStockRows %}
+                <tr>
+                  <td><strong>{{ row.item.name }}</strong></td>
+                  <td>{{ row.plant.name }}</td>
+                  <td class="num mono wl-stock-low">{{ row.qty|qty }} {{ row.item.unit }}</td>
+                  <td class="num mono">{{ row.threshold|qty }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="wl-card wl-card-pad">
+      <div class="wl-section-title">Top Outstanding Parties</div>
+      {% if data.topOutstanding is empty %}
+        {% include 'admin/_empty_state.html.twig' with {icon: '🤝', text: 'No outstanding balances.'} %}
+      {% else %}
+        <div class="wl-table-wrap">
+          <table>
+            <thead><tr><th>Party</th><th>Type</th><th class="num">Balance</th></tr></thead>
+            <tbody>
+              {% for row in data.topOutstanding %}
+                <tr>
+                  <td>{{ row.party.name }}</td>
+                  <td><span class="wl-tag">{{ row.party.typeLabel }}</span></td>
+                  <td class="num mono {{ row.balance > 0 ? 'wl-bal-pos' : 'wl-bal-neg' }}">
+                    {{ row.balance|abs|inr }}
+                    <small>{{ row.balance > 0 ? 'to receive' : 'to pay' }}</small>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="wl-grid-2" style="margin-top:14px;">
+    <div class="wl-card wl-card-pad">
+      <div class="wl-section-title">Recent Sales Invoices</div>
+      {% if data.recentSales is empty %}
+        {% include 'admin/_empty_state.html.twig' with {icon: '🧾', text: 'No invoices yet.'} %}
+      {% else %}
+        <div class="wl-table-wrap">
+          <table>
+            <thead><tr><th>Invoice</th><th>Date</th><th>Buyer</th><th class="num">Total</th></tr></thead>
+            <tbody>
+              {% for inv in data.recentSales %}
+                <tr>
+                  <td class="mono">{{ inv.no }}</td>
+                  <td>{{ inv.date|date('d M Y') }}</td>
+                  <td>{{ inv.party ? inv.party.name : '—' }}</td>
+                  <td class="num mono">{{ inv.total|inr }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="wl-card wl-card-pad">
+      <div class="wl-section-title">Recent Purchase Bills</div>
+      {% if data.recentPurchases is empty %}
+        {% include 'admin/_empty_state.html.twig' with {icon: '🛒', text: 'No bills yet.'} %}
+      {% else %}
+        <div class="wl-table-wrap">
+          <table>
+            <thead><tr><th>Bill</th><th>Date</th><th>Supplier</th><th class="num">Total</th></tr></thead>
+            <tbody>
+              {% for bill in data.recentPurchases %}
+                <tr>
+                  <td class="mono">{{ bill.no }}</td>
+                  <td>{{ bill.date|date('d M Y') }}</td>
+                  <td>{{ bill.party ? bill.party.name : '—' }}</td>
+                  <td class="num mono">{{ bill.total|inr }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

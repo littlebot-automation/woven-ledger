@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ledger — {{ party.name }}</title>
+<style>
+  *{box-sizing:border-box;}
+  body{font-family:'Inter',system-ui,sans-serif;color:#20242B;margin:0;padding:28px;background:#fff;}
+  h1,h2{font-family:'Sora',system-ui,sans-serif;margin:0;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1D3557;padding-bottom:14px;margin-bottom:18px;}
+  .company{font-size:19px;font-weight:700;color:#1D3557;}
+  .muted{color:#565F6B;font-size:12.5px;line-height:1.5;}
+  .doc-title{font-size:16px;font-weight:700;text-align:right;}
+  .party-block{margin-bottom:16px;font-size:13px;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th,td{padding:8px 10px;border-bottom:1px solid #E3DDCE;text-align:left;}
+  th{background:#F5F2EA;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;}
+  td.num,th.num{text-align:right;}
+  .pos{color:#2A9D4A;}
+  .neg{color:#C0392B;}
+  .closing{margin-top:18px;padding:12px 14px;background:#F5F2EA;border:1px solid #E3DDCE;border-radius:8px;font-size:14px;}
+  .foot{margin-top:26px;font-size:11px;color:#565F6B;}
+  @media print{
+    body{padding:0;}
+    .no-print{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div>
+    <div class="company">{{ settings.companyName }}</div>
+    <div class="muted">
+      {% if settings.address %}{{ settings.address|nl2br }}<br>{% endif %}
+      {% if settings.phone %}Phone: {{ settings.phone }}<br>{% endif %}
+      {% if settings.gstin %}GSTIN: {{ settings.gstin }}{% endif %}
+    </div>
+  </div>
+  <div class="doc-title">
+    Party Ledger<br>
+    <span class="muted">Generated {{ "now"|date('d M Y') }}</span>
+  </div>
+</div>
+
+<div class="party-block">
+  <strong>{{ party.name }}</strong> — {{ party.typeLabel }}<br>
+  <span class="muted">
+    {% if party.address %}{{ party.address }}<br>{% endif %}
+    {% if party.phone %}Phone: {{ party.phone }} {% endif %}
+    {% if party.gstin %}· GSTIN: {{ party.gstin }}{% endif %}
+  </span>
+</div>
+
+{% if entries is empty %}
+  <p class="muted">No transactions recorded for this party.</p>
+{% else %}
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Type</th><th>Ref</th><th class="num">Amount</th><th class="num">Balance</th></tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+        <tr>
+          <td>{{ entry.date|date('d M Y') }}</td>
+          <td>{{ entry.type }}</td>
+          <td class="mono">{{ entry.ref }}</td>
+          <td class="num mono {{ entry.amount >= 0 ? 'pos' : 'neg' }}">
+            {{ entry.amount >= 0 ? '+' : '−' }}{{ entry.amount|abs|inr }}
+          </td>
+          <td class="num mono">{{ entry.balance|abs|inr }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="closing">
+    {% if balance > 0.01 %}
+      Closing balance: <strong class="pos mono">{{ balance|inr }}</strong> receivable from {{ party.name }}.
+    {% elseif balance < -0.01 %}
+      Closing balance: <strong class="neg mono">{{ balance|abs|inr }}</strong> payable to {{ party.name }}.
+    {% else %}
+      Account settled — nothing outstanding.
+    {% endif %}
+  </div>
+{% endif %}
+
+<div class="foot">This is a computer-generated statement and needs no signature.</div>
+
+<script>window.addEventListener('load', function(){ window.print(); });</script>
+</body>
+</html>

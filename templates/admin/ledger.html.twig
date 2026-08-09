@@ -1,0 +1,64 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block content %}
+  {% if parties is empty %}
+    <div class="wl-card wl-card-pad">
+      {% include 'admin/_empty_state.html.twig' with {icon: '📒', text: 'Add a customer or supplier first — the ledger builds itself from their transactions.'} %}
+    </div>
+  {% else %}
+    <div class="wl-toolbar">
+      <form method="get" action="{{ path('admin_ledger') }}" class="wl-inline-form">
+        <label for="party">Party</label>
+        <select name="party" id="party" onchange="this.form.submit()">
+          {% for p in parties %}
+            <option value="{{ p.id }}"{{ party and party.id == p.id ? ' selected' : '' }}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+        <noscript><button class="wl-btn" type="submit">Show</button></noscript>
+      </form>
+
+      {% if party %}
+        <a class="wl-btn wl-btn-secondary" href="{{ path('admin_ledger_print', {id: party.id}) }}" target="_blank">🖨 Print</a>
+      {% endif %}
+    </div>
+
+    <div class="wl-card">
+      {% if entries is empty %}
+        <div class="wl-card-pad">
+          {% include 'admin/_empty_state.html.twig' with {icon: '📄', text: 'No transactions for this party yet.'} %}
+        </div>
+      {% else %}
+        <div class="wl-table-wrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Type</th><th>Ref</th><th class="num">Amount</th><th class="num">Balance</th></tr>
+            </thead>
+            <tbody>
+              {% for entry in entries %}
+                <tr>
+                  <td>{{ entry.date|date('d M Y') }}</td>
+                  <td>{{ entry.type }}</td>
+                  <td class="mono">{{ entry.ref }}</td>
+                  <td class="num mono {{ entry.amount >= 0 ? 'wl-bal-pos' : 'wl-bal-neg' }}">
+                    {{ entry.amount >= 0 ? '+' : '−' }}{{ entry.amount|abs|inr }}
+                  </td>
+                  <td class="num mono">{{ entry.balance|abs|inr }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="wl-card-pad wl-ledger-foot">
+          {% if balance > 0.01 %}
+            <strong class="wl-bal-pos">{{ party.name }} owes you {{ balance|inr }}</strong>
+          {% elseif balance < -0.01 %}
+            <strong class="wl-bal-neg">You owe {{ party.name }} {{ balance|abs|inr }}</strong>
+          {% else %}
+            <strong>Account settled — nothing outstanding.</strong>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endblock %}

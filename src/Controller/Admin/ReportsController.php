@@ -1,0 +1,45 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller\Admin;
+
+use App\Repository\SettingsRepository;
+use App\Service\NavigationProvider;
+use App\Service\ReportService;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ReportsController extends AbstractController
+{
+    public function __construct(
+        private readonly ReportService $reportService,
+        private readonly SettingsRepository $settingsRepository,
+        private readonly NavigationProvider $navigation,
+    ) {
+    }
+
+    #[Route('/admin/reports', name: 'admin_reports')]
+    public function index(Request $request): Response
+    {
+        $tab = (string) $request->query->get('tab', 'sales');
+
+        if (!\array_key_exists($tab, ReportService::TABS)) {
+            $tab = 'sales';
+        }
+
+        [$title, $subtitle] = $this->navigation->getPageMeta('reports');
+
+        return $this->render('admin/reports.html.twig', [
+            'page_title' => $title,
+            'page_subtitle' => $subtitle,
+            'active_nav' => 'reports',
+            'tabs' => ReportService::TABS,
+            'tab' => $tab,
+            'data' => $this->reportService->reportData($tab),
+            'settings' => $this->settingsRepository->getSettings(),
+        ]);
+    }
+}

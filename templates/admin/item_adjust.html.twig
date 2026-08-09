@@ -1,0 +1,43 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block content %}
+  <div class="wl-card wl-card-pad" style="max-width:640px;">
+    <form method="post">
+      <div class="wl-field">
+        <label for="plant">Plant</label>
+        <select name="plant" id="plant">
+          {% for plant in plants %}
+            <option value="{{ plant.id }}">
+              {{ plant.name }} (current: {{ current[plant.id]|default(0)|qty }} {{ item.unit }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="wl-field">
+        <label for="absolute">Set Absolute Stock To</label>
+        <input type="number" step="0.001" name="absolute" id="absolute" placeholder="Leave blank to use the adjustment below">
+      </div>
+
+      <div class="wl-field">
+        <label for="delta">Or Adjust By (+/−)</label>
+        <input type="number" step="0.001" name="delta" id="delta" placeholder="e.g. 100 or -50">
+      </div>
+
+      <p class="wl-note">
+        Use this for opening stock, physical count corrections, or wastage.
+        Sales and purchases adjust stock automatically.
+        If you fill both boxes, the absolute value wins.
+      </p>
+
+      <p class="wl-note">
+        Low stock threshold for this item: <strong class="mono">{{ threshold|qty }} {{ item.unit }}</strong>
+      </p>
+
+      <div class="wl-form-actions">
+        <a class="wl-btn wl-btn-secondary" href="{{ back_url }}">Cancel</a>
+        <button class="wl-btn wl-btn-accent" type="submit">Apply</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}
