@@ -112,4 +112,18 @@ class DocumentPersisterTest extends DomainTestCase
 
         $this->assertSame(500.0, $this->stockOf($this->fabric, $this->plantA));
     }
+
+    public function testConsecutiveCreatesNeverShareANumber(): void
+    {
+        $numbers = [];
+
+        for ($i = 0; $i < 5; ++$i) {
+            $invoice = $this->salesInvoiceFor(1.0);
+            $this->persister()->createSalesInvoice($invoice);
+            $numbers[] = $invoice->getNo();
+        }
+
+        $this->assertCount(5, array_unique($numbers), 'Every document number must be distinct.');
+        $this->assertSame(['SI-0001', 'SI-0002', 'SI-0003', 'SI-0004', 'SI-0005'], $numbers);
+    }
 }

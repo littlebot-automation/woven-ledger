@@ -43,11 +43,13 @@ class DocumentPersister
      */
     public function createSalesInvoice(SalesInvoice $invoice): array
     {
-        $this->stockManager->normalise($invoice);
-        $invoice->setNo($this->documentNumbers->consume(DocumentNumberService::SALES));
-
-        $this->em->persist($invoice);
-        $this->em->flush();
+        // Reading, incrementing and committing the counter must be atomic, or two
+        // simultaneous creates can be handed the same number — and `no` is unique.
+        $this->em->wrapInTransaction(function () use ($invoice): void {
+            $this->stockManager->normalise($invoice);
+            $invoice->setNo($this->documentNumbers->consume(DocumentNumberService::SALES));
+            $this->em->persist($invoice);
+        });
 
         $warnings = $this->stockManager->salesWarnings($invoice->getLines(), $invoice->getPlant());
         $this->stockManager->applySnapshot($this->snapshotOf($invoice), self::SALES_APPLY);
@@ -92,11 +94,11 @@ class DocumentPersister
 
     public function createPurchaseBill(PurchaseBill $bill): void
     {
-        $this->stockManager->normalise($bill);
-        $bill->setNo($this->documentNumbers->consume(DocumentNumberService::PURCHASE));
-
-        $this->em->persist($bill);
-        $this->em->flush();
+        $this->em->wrapInTransaction(function () use ($bill): void {
+            $this->stockManager->normalise($bill);
+            $bill->setNo($this->documentNumbers->consume(DocumentNumberService::PURCHASE));
+            $this->em->persist($bill);
+        });
 
         $this->stockManager->applySnapshot($this->snapshotOf($bill), self::PURCHASE_APPLY);
     }
@@ -125,17 +127,17 @@ class DocumentPersister
 
     public function createReceipt(Receipt $receipt): void
     {
-        $receipt->setNo($this->documentNumbers->consume(DocumentNumberService::RECEIPT));
-
-        $this->em->persist($receipt);
-        $this->em->flush();
+        $this->em->wrapInTransaction(function () use ($receipt): void {
+            $receipt->setNo($this->documentNumbers->consume(DocumentNumberService::RECEIPT));
+            $this->em->persist($receipt);
+        });
     }
 
     public function createPayment(Payment $payment): void
     {
-        $payment->setNo($this->documentNumbers->consume(DocumentNumberService::PAYMENT));
-
-        $this->em->persist($payment);
-        $this->em->flush();
+        $this->em->wrapInTransaction(function () use ($payment): void {
+            $payment->setNo($this->documentNumbers->consume(DocumentNumberService::PAYMENT));
+            $this->em->persist($payment);
+        });
     }
 }
