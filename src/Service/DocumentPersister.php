@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Payment;
 use App\Entity\PurchaseBill;
+use App\Entity\Receipt;
 use App\Entity\SalesInvoice;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -119,5 +121,21 @@ class DocumentPersister
         $this->em->flush();
 
         $this->stockManager->applySnapshot($snapshot, -self::PURCHASE_APPLY);
+    }
+
+    public function createReceipt(Receipt $receipt): void
+    {
+        $receipt->setNo($this->documentNumbers->consume(DocumentNumberService::RECEIPT));
+
+        $this->em->persist($receipt);
+        $this->em->flush();
+    }
+
+    public function createPayment(Payment $payment): void
+    {
+        $payment->setNo($this->documentNumbers->consume(DocumentNumberService::PAYMENT));
+
+        $this->em->persist($payment);
+        $this->em->flush();
     }
 }
