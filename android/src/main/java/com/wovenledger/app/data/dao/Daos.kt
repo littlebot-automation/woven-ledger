@@ -132,6 +132,9 @@ interface StaffWorkDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(work: StaffWork): Long
 
+    @Query("SELECT * FROM staff_work ORDER BY date DESC, id DESC")
+    fun getAllWork(): Flow<List<StaffWork>>
+
     @Query("SELECT * FROM staff_work WHERE staff_id = :staffId ORDER BY date DESC")
     fun getWorkByStaff(staffId: Long): Flow<List<StaffWork>>
 

@@ -44,18 +44,7 @@ class StaffWorkRepository @Inject constructor(
      * rest of the app.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun getAll(): Flow<List<StaffWork>> = staffDao.getAllStaff().flatMapLatest { staff ->
-        if (staff.isEmpty()) {
-            flowOf(emptyList())
-        } else {
-            combine(staff.map { dao.getWorkByStaff(it.id) }) { perStaff ->
-                perStaff.asSequence()
-                    .flatten()
-                    .sortedWith(compareByDescending<StaffWork> { it.date }.thenByDescending { it.id })
-                    .toList()
-            }
-        }
-    }
+    fun getAll(): Flow<List<StaffWork>> = dao.getAllWork()
 
     fun getUnpaidWork(): Flow<List<StaffWork>> = dao.getUnpaidWork()
 
@@ -129,16 +118,7 @@ class StaffWorkRepository @Inject constructor(
         paymentVoucherId = dto.paymentVoucherId?.toLong()
     )
 
-    /**
-     * Work entries carry a foreign key to a plant and the API does not expose plants
-     * yet, so an entry at plant 2 would fail to insert with nothing to point at. This
-     * holds a placeholder open until /api/plants exists.
-     */
-    private suspend fun ensurePlant(plantId: Long) {
-        if (plants.read(plantId).first() == null) {
-            plants.create(Plant(id = plantId, name = "Plant $plantId", address = ""))
-        }
-    }
+    private suspend fun ensurePlant(plantId: Long) = plants.ensureExists(plantId)
 
     private companion object {
         const val DEFAULT_PLANT_ID = 1L

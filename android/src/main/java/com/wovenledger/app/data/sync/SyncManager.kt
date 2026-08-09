@@ -63,19 +63,8 @@ class SyncManager @Inject constructor(
         scope.launch { sync() }
     }
 
-    /**
-     * Sales invoices and purchase bills carry a foreign key to a plant, and the API does
-     * not expose plants yet, so documents would fail to insert with nothing to point at.
-     * This holds a single placeholder open until /api/plants exists; the document sync
-     * already assigns every document to plant 1.
-     */
-    private suspend fun ensureDefaultPlant() {
-        if (plantRepository.read(DEFAULT_PLANT_ID).first() == null) {
-            plantRepository.create(
-                Plant(id = DEFAULT_PLANT_ID, name = "Main plant", address = "")
-            )
-        }
-    }
+    /** Document sync assigns every invoice and bill to plant 1, so that row must exist. */
+    private suspend fun ensureDefaultPlant() = plantRepository.ensureExists(DEFAULT_PLANT_ID)
 
     /**
      * Runs every entity sync, each independently: one failing endpoint must not stop

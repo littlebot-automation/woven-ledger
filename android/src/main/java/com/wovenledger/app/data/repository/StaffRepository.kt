@@ -77,11 +77,7 @@ class StaffRepository @Inject constructor(
      * placeholder open until /api/plants exists, mirroring what SyncManager does for
      * plant 1.
      */
-    private suspend fun ensurePlant(plantId: Long) {
-        if (plants.read(plantId).first() == null) {
-            plants.create(Plant(id = plantId, name = "Plant $plantId", address = ""))
-        }
-    }
+    private suspend fun ensurePlant(plantId: Long) = plants.ensureExists(plantId)
 
     private companion object {
         const val DEFAULT_PLANT_ID = 1L
