@@ -1,0 +1,11 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # Tests reach for these through the container. Redeclaring them public keeps
+    # them from being inlined or removed when nothing else references them yet.
+    App\Service\StockService: { public: true }
+    App\Service\DocumentNumberService: { public: true }
+    App\Service\DocumentStockManager: { public: true }
+    App\Service\DocumentPersister: { public: true }
