@@ -1,5 +1,7 @@
 package com.wovenledger.app.ui.screens.parties
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
@@ -29,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -244,6 +248,7 @@ class PartyDetailViewModel @Inject constructor(
 fun PartyDetailScreen(navController: NavHostController, partyId: Long) {
     val viewModel: PartyDetailViewModel = hiltViewModel()
     val detail by viewModel.detail.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     val party = detail.party
     if (party == null) {
@@ -262,12 +267,35 @@ fun PartyDetailScreen(navController: NavHostController, partyId: Long) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            OutlinedButton(
-                onClick = { navController.navigate("${NavigationRoutes.PARTY_EDIT_BASE}/${party.id}") },
+            Row(
                 modifier = Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("Edit")
+                OutlinedButton(
+                    onClick = { navController.navigate("${NavigationRoutes.PARTY_EDIT_BASE}/${party.id}") },
+                ) {
+                    Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Edit")
+                }
+                // ACTION_DIAL opens the dialer pre-filled but does not place the call, so
+                // no CALL_PHONE permission is needed and the user stays in control of the
+                // tap. Only offered when we actually hold a number to dial.
+                if (party.phone.isNotBlank()) {
+                    OutlinedButton(
+                        onClick = {
+                            // fromParts encodes the number, so spacing or formatting in a
+                            // stored phone does not break the tel: URI.
+                            val intent = Intent(
+                                Intent.ACTION_DIAL,
+                                Uri.fromParts("tel", party.phone, null),
+                            )
+                            context.startActivity(intent)
+                        },
+                    ) {
+                        Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                        Text("Call")
+                    }
+                }
             }
         }
 
