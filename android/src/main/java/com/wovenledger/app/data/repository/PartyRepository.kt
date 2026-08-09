@@ -41,13 +41,16 @@ class PartyRepository @Inject constructor(
         }
     }
 
-    suspend fun hasTransactions(partyId: Long): Boolean {
-        val party = dao.getParty(partyId).first()
-        return party != null && (
-            party.openingBalance > 0 ||
-            party.openingBalanceType != null
-        )
-    }
+    /**
+     * Whether any document points at this party — the question worth asking before
+     * offering to delete one.
+     *
+     * This used to test `openingBalanceType != null` on a non-nullable field, so it
+     * answered true for every party that existed. The DAO query counts the invoices,
+     * bills, receipts and payments that actually reference it.
+     */
+    suspend fun hasTransactions(partyId: Long): Boolean =
+        dao.hasTransactions(partyId.toInt()) > 0
 
     fun findRecent(): Flow<List<Party>> = dao.getAllParties()
 

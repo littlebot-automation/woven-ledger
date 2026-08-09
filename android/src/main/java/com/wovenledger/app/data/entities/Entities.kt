@@ -30,6 +30,16 @@ enum class BalanceType {
     TO_RECEIVE, TO_PAY
 }
 
+/**
+ * Money derived from a quantity, rounded to the nearest paise.
+ *
+ * Truncating loses up to a paise on every line and compounds across a document, and
+ * the server rounds rather than truncates — so a truncating client would disagree
+ * with the portal about the same record. Quantities and rates are non-negative here,
+ * where rounding half-up and PHP's round() agree.
+ */
+internal fun amountOf(qty: Double, rate: Long): Long = Math.round(qty * rate)
+
 // ===================== ENTITIES =====================
 
 @Entity(tableName = "plants")
@@ -207,7 +217,7 @@ data class StaffWork(
     @ColumnInfo(name = "payment_voucher_id")
     val paymentVoucherId: Long? = null
 ) {
-    fun getAmount(): Long = (qty * rate.toDouble()).toLong()
+    fun getAmount(): Long = amountOf(qty, rate)
 }
 
 @Entity(
@@ -273,7 +283,7 @@ data class SalesInvoiceLine(
     val itemId: Long,
     val qty: Double,
     val rate: Long, // paise
-    val amount: Long = (qty * rate.toDouble()).toLong() // paise
+    val amount: Long = amountOf(qty, rate) // paise
 )
 
 @Entity(
@@ -339,7 +349,7 @@ data class PurchaseBillLine(
     val itemId: Long,
     val qty: Double,
     val rate: Long, // paise
-    val amount: Long = (qty * rate.toDouble()).toLong() // paise
+    val amount: Long = amountOf(qty, rate) // paise
 )
 
 @Entity(

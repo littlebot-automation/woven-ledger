@@ -233,34 +233,31 @@ class PartyRepositoryTest {
     // ------------------------------------------------------------- hasTransactions
 
     /**
-     * DISABLED — this documents a production bug, it is not a regression guard.
-     *
-     * `PartyRepository.hasTransactions` returns
-     *     `party != null && (party.openingBalance > 0 || party.openingBalanceType != null)`
-     * but `Party.openingBalanceType` is a non-nullable `BalanceType` with a default, so
-     * `!= null` is always true and the whole expression collapses to "this party
-     * exists". A brand-new party with a zero balance and no documents reports true.
-     *
-     * It also never consults `PartyDao.hasTransactions(id)`, the SQL query that actually
-     * counts invoices, bills, receipts and payments for the party — that query exists
-     * and is unused. Nothing calls the repository method today, so the damage is latent;
-     * the first delete guard wired to it would refuse to delete anything.
-     *
-     * Not fixed here: production code is owned elsewhere in this change.
+     * This used to read `openingBalanceType != null` on a non-nullable field, so it
+     * collapsed to "this party exists" and answered true for everyone — a delete guard
+     * wired to it would have refused every party. It now asks the DAO, which counts the
+     * invoices, bills, receipts and payments that reference the party.
      */
-    @Ignore("Bug: hasTransactions is always true for an existing party — see kdoc")
     @Test
-    fun `a party with no balance and no documents has no transactions`() = runTest {
-        whenever(dao.getParty(1L)).thenReturn(flowOf(party(id = 1, openingBalance = 0L)))
+    fun `a party with no documents has no transactions`() = runTest {
+        wheneverBlocking { dao.hasTransactions(1) }.thenReturn(0)
 
         assertFalse(repository.hasTransactions(1L))
     }
 
     @Test
-    fun `a party that does not exist has no transactions`() = runTest {
-        whenever(dao.getParty(99L)).thenReturn(flowOf(null))
+    fun `a party with documents has transactions`() = runTest {
+        wheneverBlocking { dao.hasTransactions(1) }.thenReturn(3)
 
-        assertFalse(repository.hasTransactions(99L))
+        assertTrue(repository.hasTransactions(1L))
+    }
+
+    /** An opening balance is not a transaction: it is the figure the account started at. */
+    @Test
+    fun `an opening balance alone is not a transaction`() = runTest {
+        wheneverBlocking { dao.hasTransactions(2) }.thenReturn(0)
+
+        assertFalse(repository.hasTransactions(2L))
     }
 
     // ---------------------------------------------------------------------- helpers
