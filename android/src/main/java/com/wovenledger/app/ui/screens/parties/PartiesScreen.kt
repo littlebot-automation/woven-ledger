@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Edit
@@ -244,6 +247,7 @@ class PartyDetailViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PartyDetail())
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PartyDetailScreen(navController: NavHostController, partyId: Long) {
     val viewModel: PartyDetailViewModel = hiltViewModel()
@@ -267,7 +271,7 @@ fun PartyDetailScreen(navController: NavHostController, partyId: Long) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(
+            FlowRow(
                 modifier = Modifier.padding(top = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -294,6 +298,23 @@ fun PartyDetailScreen(navController: NavHostController, partyId: Long) {
                     ) {
                         Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                         Text("Call")
+                    }
+                    // A wa.me link opens a WhatsApp chat with the number, falling back to
+                    // the browser (which redirects) when WhatsApp is not installed. wa.me
+                    // wants digits only, so strip any spacing or punctuation first; the
+                    // number should carry its country code to land on the right contact.
+                    OutlinedButton(
+                        onClick = {
+                            val digits = party.phone.filter(Char::isDigit)
+                            val intent = Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://wa.me/$digits"),
+                            )
+                            context.startActivity(intent)
+                        },
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                        Text("WhatsApp")
                     }
                 }
             }
