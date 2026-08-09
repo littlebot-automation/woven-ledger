@@ -42,6 +42,9 @@ class SalesInvoiceRepository @Inject constructor(
 
     fun getLines(invoiceId: Long): Flow<List<SalesInvoiceLine>> = lineDao.getLinesByInvoice(invoiceId)
 
+    /** Sales lines for one item, for its movement history. */
+    fun getLinesForItem(itemId: Long): Flow<List<SalesInvoiceLine>> = lineDao.getLinesByItem(itemId)
+
     fun getWithLines(id: Long): Flow<SalesInvoiceWithLines?> = combine(
         dao.getInvoice(id),
         lineDao.getLinesByInvoice(id)

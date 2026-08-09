@@ -39,6 +39,9 @@ class PurchaseBillRepository @Inject constructor(
 
     fun getLines(billId: Long): Flow<List<PurchaseBillLine>> = lineDao.getLinesByBill(billId)
 
+    /** Purchase lines for one item, for its movement history. */
+    fun getLinesForItem(itemId: Long): Flow<List<PurchaseBillLine>> = lineDao.getLinesByItem(itemId)
+
     fun getWithLines(id: Long): Flow<PurchaseBillWithLines?> = combine(
         dao.getBill(id),
         lineDao.getLinesByBill(id)

@@ -269,6 +269,10 @@ interface SalesInvoiceLineDao {
     @Query("SELECT * FROM sales_invoice_lines WHERE invoice_id = :invoiceId")
     fun getLinesByInvoice(invoiceId: Long): Flow<List<SalesInvoiceLine>>
 
+    /** Every time this item was sold — the outward half of its movement history. */
+    @Query("SELECT * FROM sales_invoice_lines WHERE item_id = :itemId")
+    fun getLinesByItem(itemId: Long): Flow<List<SalesInvoiceLine>>
+
     @Query("DELETE FROM sales_invoice_lines WHERE invoice_id = :invoiceId")
     suspend fun deleteForInvoice(invoiceId: Long)
 
@@ -326,6 +330,10 @@ interface PurchaseBillLineDao {
 
     @Query("SELECT * FROM purchase_bill_lines WHERE bill_id = :billId")
     fun getLinesByBill(billId: Long): Flow<List<PurchaseBillLine>>
+
+    /** Every time this item was bought — the inward half of its movement history. */
+    @Query("SELECT * FROM purchase_bill_lines WHERE item_id = :itemId")
+    fun getLinesByItem(itemId: Long): Flow<List<PurchaseBillLine>>
 
     @Query("DELETE FROM purchase_bill_lines WHERE bill_id = :billId")
     suspend fun deleteForBill(billId: Long)
