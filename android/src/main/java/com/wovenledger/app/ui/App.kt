@@ -53,6 +53,7 @@ import com.wovenledger.app.ui.screens.documents.SalesInvoiceDetailScreen
 import com.wovenledger.app.ui.screens.documents.SalesInvoicesListScreen
 import com.wovenledger.app.ui.screens.items.ItemDetailScreen
 import com.wovenledger.app.ui.screens.items.ItemsListScreen
+import com.wovenledger.app.ui.screens.more.MoreScreen
 import com.wovenledger.app.ui.screens.parties.PartiesListScreen
 import com.wovenledger.app.ui.screens.parties.PartyDetailScreen
 
@@ -66,12 +67,13 @@ private val BOTTOM_DESTINATIONS = listOf(
     Destination(NavigationRoutes.DASHBOARD, "Dashboard", Icons.Filled.Dashboard),
     Destination(NavigationRoutes.PARTIES_LIST, "Parties", Icons.Filled.Group),
     Destination(NavigationRoutes.SALES_INVOICES_LIST, "Invoices", Icons.AutoMirrored.Filled.ReceiptLong),
-    Destination(NavigationRoutes.ITEMS_LIST, "Items", Icons.Filled.MoreHoriz),
+    Destination(NavigationRoutes.MORE, "More", Icons.Filled.MoreHoriz),
 )
 
 /** Screen titles for the top bar, so it says where you are rather than always "Woven Ledger". */
 private val TITLES = mapOf(
     NavigationRoutes.DASHBOARD to "Dashboard",
+    NavigationRoutes.MORE to "More",
     NavigationRoutes.PARTIES_LIST to "Parties",
     NavigationRoutes.PARTY_DETAIL to "Party",
     NavigationRoutes.ITEMS_LIST to "Items",
@@ -151,6 +153,10 @@ fun App() {
         ) {
             composable(NavigationRoutes.DASHBOARD) {
                 DashboardScreen(navController)
+            }
+
+            composable(NavigationRoutes.MORE) {
+                MoreScreen(navController)
             }
 
             composable(NavigationRoutes.PARTIES_LIST) {

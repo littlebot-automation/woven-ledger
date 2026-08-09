@@ -7,6 +7,9 @@ object NavigationRoutes {
     // Dashboard & Overview
     const val DASHBOARD = "dashboard"
 
+    // Everything the four bottom-bar destinations don't cover
+    const val MORE = "more"
+
     // Parties (Customers/Suppliers)
     const val PARTIES_LIST = "parties_list"
     const val PARTY_DETAIL = "party_detail/{partyId}"
