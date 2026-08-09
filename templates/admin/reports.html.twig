@@ -1,135 +1,142 @@
-{% extends 'admin/layout.html.twig' %}
+{% extends '@EasyAdmin/page/content.html.twig' %}
 
-{% block content %}
-  <div class="wl-chip-row">
-    {% for key, label in tabs %}
-      <a class="wl-chip{{ tab == key ? ' active' : '' }}" href="{{ path('admin_reports', {tab: key}) }}">{{ label }}</a>
-    {% endfor %}
+{% block content_title %}{{ page_title }}{% endblock %}
+
+{% block main %}
+  <div class="form-tabs-tablist mb-3">
+    <ul class="nav nav-tabs">
+      {% for key, label in tabs %}
+        <li class="nav-item">
+          <a class="nav-link{{ tab == key ? ' active' : '' }}" href="{{ path('admin_reports', {tab: key}) }}">
+            <span class="tab-nav-item-label" data-content="{{ label }}">{{ label }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
   </div>
 
-  <div class="wl-card wl-card-pad">
-    {% if tab == 'sales' or tab == 'purchase' %}
-      {% set isSales = tab == 'sales' %}
-      <div class="wl-flex-between">
-        <div class="wl-section-title">{{ data.title }}</div>
-        <div class="mono wl-total">{{ data.total|inr }}</div>
-      </div>
-      {% if data.rows is empty %}
-        {% include 'admin/_empty_state.html.twig' with {icon: '📈', text: 'No data yet'} %}
-      {% else %}
-        <div class="wl-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>{{ isSales ? 'Invoice' : 'Bill' }}</th>
-                <th>Date</th>
-                <th>{{ isSales ? 'Party' : 'Supplier' }}</th>
-                <th>Plant</th>
-                <th class="num">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for doc in data.rows %}
-                <tr>
-                  <td class="mono">{{ doc.no }}</td>
-                  <td>{{ doc.date|date('d M Y') }}</td>
-                  <td>{{ doc.party ? doc.party.name : '—' }}</td>
-                  <td>{{ doc.plant ? doc.plant.name : '—' }}</td>
-                  <td class="num mono">{{ doc.total|inr }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% endif %}
+  {% if tab == 'sales' or tab == 'purchase' %}
+    {% set isSales = tab == 'sales' %}
 
-    {% elseif tab == 'stock' %}
-      <div class="wl-section-title">Stock Report (Plant-wise)</div>
-      {% if data.rows is empty %}
-        {% include 'admin/_empty_state.html.twig' with {icon: '📦', text: 'No items yet'} %}
-      {% else %}
-        <div class="wl-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Type</th>
-                {% for plant in data.plants %}<th class="num">{{ plant.name }}</th>{% endfor %}
-                <th class="num">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in data.rows %}
-                <tr>
-                  <td>{{ row.item.name }}</td>
-                  <td><span class="wl-tag {{ row.item.rawMaterial ? 'amber' : 'blue' }}">{{ row.item.typeLabel }}</span></td>
-                  {% for plant in data.plants %}
-                    {% set qty = row.quantities[plant.id]|default(0) %}
-                    <td class="num mono{{ qty <= row.threshold ? ' wl-stock-low' : '' }}">{{ qty|qty }} {{ row.item.unit }}</td>
-                  {% endfor %}
-                  <td class="num mono"><strong>{{ row.total|qty }} {{ row.item.unit }}</strong></td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% endif %}
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h5 mb-0">{{ data.title }}</h2>
+      <span class="fs-5 fw-bold">{{ data.total|inr }}</span>
+    </div>
 
-    {% elseif tab == 'receivable' or tab == 'payable' %}
-      <div class="wl-flex-between">
-        <div class="wl-section-title">{{ data.title }}</div>
-        <div class="mono wl-total">{{ data.total|inr }}</div>
-      </div>
-      {% if data.rows is empty %}
-        {% include 'admin/_empty_state.html.twig' with {icon: '✅', text: 'Nothing outstanding'} %}
-      {% else %}
-        <div class="wl-table-wrap">
-          <table>
-            <thead><tr><th>Party</th><th>Type</th><th class="num">Amount</th></tr></thead>
-            <tbody>
-              {% for row in data.rows %}
-                <tr>
-                  <td>{{ row.party.name }}</td>
-                  <td><span class="wl-tag">{{ row.party.typeLabel }}</span></td>
-                  <td class="num mono {{ tab == 'receivable' ? 'wl-bal-pos' : 'wl-bal-neg' }}">{{ row.balance|inr }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% endif %}
+    <table class="table datagrid{{ data.rows is empty ? ' datagrid-empty' : '' }}">
+      <thead>
+        <tr>
+          <th>{{ isSales ? 'Invoice' : 'Bill' }}</th>
+          <th>Date</th>
+          <th>{{ isSales ? 'Party' : 'Supplier' }}</th>
+          <th>Plant</th>
+          <th class="text-end">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for doc in data.rows %}
+          <tr>
+            <td>{{ doc.no }}</td>
+            <td>{{ doc.date|date('d M Y') }}</td>
+            <td>{{ doc.party ? doc.party.name : '—' }}</td>
+            <td>{{ doc.plant ? doc.plant.name : '—' }}</td>
+            <td class="text-end">{{ doc.total|inr }}</td>
+          </tr>
+        {% else %}
+          <tr class="no-results"><td colspan="100">No data yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
 
-    {% elseif tab == 'staff' %}
-      <div class="wl-grid-2" style="margin-bottom:14px;">
-        <div class="wl-card wl-kpi k-success">
-          <div class="wl-kpi-strip"></div>
-          <div class="wl-kpi-label">Total Paid</div>
-          <div class="wl-kpi-val mono">{{ data.totalPaid|inr }}</div>
-        </div>
-        <div class="wl-card wl-kpi k-danger">
-          <div class="wl-kpi-strip"></div>
-          <div class="wl-kpi-label">Total Unpaid</div>
-          <div class="wl-kpi-val mono">{{ data.totalUnpaid|inr }}</div>
+  {% elseif tab == 'stock' %}
+    <h2 class="h5 mb-2">Stock Report (Plant-wise)</h2>
+
+    <table class="table datagrid{{ data.rows is empty ? ' datagrid-empty' : '' }}">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Type</th>
+          {% for plant in data.plants %}<th class="text-end">{{ plant.name }}</th>{% endfor %}
+          <th class="text-end">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data.rows %}
+          <tr>
+            <td>{{ row.item.name }}</td>
+            <td>{{ row.item.typeLabel }}</td>
+            {% for plant in data.plants %}
+              {% set qty = row.quantities[plant.id]|default(0) %}
+              <td class="text-end{{ qty <= row.threshold ? ' text-danger fw-bold' : '' }}">
+                {{ qty|qty }} {{ row.item.unit }}
+              </td>
+            {% endfor %}
+            <td class="text-end fw-bold">{{ row.total|qty }} {{ row.item.unit }}</td>
+          </tr>
+        {% else %}
+          <tr class="no-results"><td colspan="100">No items yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {% elseif tab == 'receivable' or tab == 'payable' %}
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h5 mb-0">{{ data.title }}</h2>
+      <span class="fs-5 fw-bold">{{ data.total|inr }}</span>
+    </div>
+
+    <table class="table datagrid{{ data.rows is empty ? ' datagrid-empty' : '' }}">
+      <thead>
+        <tr><th>Party</th><th>Type</th><th class="text-end">Amount</th></tr>
+      </thead>
+      <tbody>
+        {% for row in data.rows %}
+          <tr>
+            <td>{{ row.party.name }}</td>
+            <td>{{ row.party.typeLabel }}</td>
+            <td class="text-end{{ tab == 'receivable' ? ' text-success' : ' text-danger' }}">{{ row.balance|inr }}</td>
+          </tr>
+        {% else %}
+          <tr class="no-results"><td colspan="100">Nothing outstanding</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {% elseif tab == 'staff' %}
+    <div class="row g-3 mb-3">
+      <div class="col-sm-6">
+        <div class="card">
+          <div class="card-body">
+            <div class="text-muted small">Total Paid</div>
+            <div class="fs-4 fw-bold text-success">{{ data.totalPaid|inr }}</div>
+          </div>
         </div>
       </div>
-      {% if data.rows is empty %}
-        {% include 'admin/_empty_state.html.twig' with {icon: '👷', text: 'No staff work logged yet'} %}
-      {% else %}
-        <div class="wl-table-wrap">
-          <table>
-            <thead><tr><th>Staff</th><th class="num">Paid</th><th class="num">Unpaid</th></tr></thead>
-            <tbody>
-              {% for row in data.rows %}
-                <tr>
-                  <td>{{ row.staff.name }}</td>
-                  <td class="num mono">{{ row.paid|inr }}</td>
-                  <td class="num mono{{ row.unpaid > 0 ? ' wl-bal-neg' : '' }}">{{ row.unpaid|inr }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+      <div class="col-sm-6">
+        <div class="card">
+          <div class="card-body">
+            <div class="text-muted small">Total Unpaid</div>
+            <div class="fs-4 fw-bold text-danger">{{ data.totalUnpaid|inr }}</div>
+          </div>
         </div>
-      {% endif %}
-    {% endif %}
-  </div>
+      </div>
+    </div>
+
+    <table class="table datagrid{{ data.rows is empty ? ' datagrid-empty' : '' }}">
+      <thead>
+        <tr><th>Staff</th><th class="text-end">Paid</th><th class="text-end">Unpaid</th></tr>
+      </thead>
+      <tbody>
+        {% for row in data.rows %}
+          <tr>
+            <td>{{ row.staff.name }}</td>
+            <td class="text-end">{{ row.paid|inr }}</td>
+            <td class="text-end{{ row.unpaid > 0 ? ' text-danger' : '' }}">{{ row.unpaid|inr }}</td>
+          </tr>
+        {% else %}
+          <tr class="no-results"><td colspan="100">No staff work logged yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
 {% endblock %}

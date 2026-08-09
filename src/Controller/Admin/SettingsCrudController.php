@@ -9,6 +9,7 @@ use App\Repository\SettingsRepository;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
@@ -53,7 +54,7 @@ class SettingsCrudController extends AbstractCrudController
             ->disable(Action::NEW, Action::DELETE, Action::BATCH_DELETE);
     }
 
-    public function index(AdminContext $context): Response
+    public function index(AdminContext $context): KeyValueStore|Response
     {
         $settings = $this->settingsRepository->getSettings();
 
@@ -68,13 +69,13 @@ class SettingsCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield FormField::addPanel('Company');
+        yield FormField::addFieldset('Company');
         yield TextField::new('companyName', 'Company Name');
         yield TextareaField::new('address', 'Address');
         yield TextField::new('phone', 'Phone');
         yield TextField::new('gstin', 'GSTIN');
 
-        yield FormField::addPanel('Document Numbering');
+        yield FormField::addFieldset('Document Numbering');
         yield TextField::new('invoicePrefix', 'Sales Invoice Prefix');
         yield IntegerField::new('nextInvoiceNo', 'Next Invoice No');
         yield TextField::new('purchasePrefix', 'Purchase Bill Prefix');
@@ -84,7 +85,7 @@ class SettingsCrudController extends AbstractCrudController
         yield TextField::new('paymentPrefix', 'Payment Prefix');
         yield IntegerField::new('nextPaymentNo', 'Next Payment No');
 
-        yield FormField::addPanel('Defaults');
+        yield FormField::addFieldset('Defaults');
         yield NumberField::new('lowStockDefault', 'Low Stock Default')
             ->setNumDecimals(3)
             ->setHelp('Used for any item without its own threshold');

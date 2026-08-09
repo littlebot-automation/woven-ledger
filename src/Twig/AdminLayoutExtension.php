@@ -29,14 +29,11 @@ class AdminLayoutExtension extends AbstractExtension implements GlobalsInterface
         }
 
         $settings = $this->settingsRepository->getSettings();
-        $activeNav = $this->getActiveNav($request);
-        [$title, $subtitle] = $this->navigation->getPageMeta($activeNav);
+        [$title] = $this->navigation->getPageMeta($this->getActiveNav($request));
 
         return [
             'settings' => $settings,
             'page_title' => $title,
-            'page_subtitle' => $subtitle,
-            'active_nav' => $activeNav,
         ];
     }
 

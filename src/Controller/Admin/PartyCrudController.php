@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\Party;
 use App\Repository\PartyRepository;
+use App\Service\IndianNumberFormatter;
 use App\Service\LedgerService;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -22,6 +23,7 @@ class PartyCrudController extends AbstractCrudController
     public function __construct(
         private readonly LedgerService $ledgerService,
         private readonly PartyRepository $partyRepository,
+        private readonly IndianNumberFormatter $numbers,
     ) {
     }
 
@@ -43,7 +45,7 @@ class PartyCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield FormField::addPanel('Party');
+        yield FormField::addFieldset('Party');
 
         yield TextField::new('name', 'Party Name');
 
@@ -59,7 +61,7 @@ class PartyCrudController extends AbstractCrudController
         yield TextField::new('gstin', 'GSTIN')->hideOnIndex();
         yield TextareaField::new('address', 'Address')->hideOnIndex();
 
-        yield FormField::addPanel('Opening Balance')->onlyOnForms();
+        yield FormField::addFieldset('Opening Balance')->onlyOnForms();
 
         yield MoneyField::new('openingBalance', 'Opening Balance')
             ->setCurrency('INR')
@@ -84,16 +86,14 @@ class PartyCrudController extends AbstractCrudController
                 $balance = $this->ledgerService->getBalance($party);
 
                 if (abs($balance) < 0.01) {
-                    return '<span class="wl-bal-zero">—</span>';
+                    return '—';
                 }
 
-                $class = $balance > 0 ? 'wl-bal-pos' : 'wl-bal-neg';
                 $suffix = $balance > 0 ? 'to receive' : 'to pay';
 
                 return \sprintf(
-                    '<span class="%s mono">₹%s</span> <small>%s</small>',
-                    $class,
-                    number_format(abs($balance), 2),
+                    '%s <small>%s</small>',
+                    $this->numbers->inr(abs($balance)),
                     $suffix,
                 );
             });

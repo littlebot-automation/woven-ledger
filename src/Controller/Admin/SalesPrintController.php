@@ -6,9 +6,9 @@ namespace App\Controller\Admin;
 
 use App\Entity\SalesInvoice;
 use App\Repository\SettingsRepository;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
 
 class SalesPrintController extends AbstractController
 {
@@ -17,7 +17,7 @@ class SalesPrintController extends AbstractController
     ) {
     }
 
-    #[Route('/admin/sales/{id}/print', name: 'admin_sales_print', requirements: ['id' => '\d+'])]
+    #[AdminRoute(path: '/sales/{id}/print', name: 'sales_print', options: ['requirements' => ['id' => '\d+']])]
     public function print(SalesInvoice $invoice): Response
     {
         return $this->render('admin/sales_print.html.twig', [

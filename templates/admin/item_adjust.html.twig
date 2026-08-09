@@ -1,43 +1,43 @@
-{% extends 'admin/layout.html.twig' %}
+{% extends '@EasyAdmin/page/content.html.twig' %}
 
-{% block content %}
-  <div class="wl-card wl-card-pad" style="max-width:640px;">
-    <form method="post">
-      <div class="wl-field">
-        <label for="plant">Plant</label>
-        <select name="plant" id="plant">
-          {% for plant in plants %}
-            <option value="{{ plant.id }}">
-              {{ plant.name }} (current: {{ current[plant.id]|default(0)|qty }} {{ item.unit }})
-            </option>
-          {% endfor %}
-        </select>
-      </div>
+{% block content_title %}{{ page_title }}{% endblock %}
 
-      <div class="wl-field">
-        <label for="absolute">Set Absolute Stock To</label>
-        <input type="number" step="0.001" name="absolute" id="absolute" placeholder="Leave blank to use the adjustment below">
-      </div>
+{% block main %}
+  <form method="post">
+    <p>
+      <label for="plant">Plant</label>
+      <select name="plant" id="plant">
+        {% for plant in plants %}
+          <option value="{{ plant.id }}">
+            {{ plant.name }} (current: {{ current[plant.id]|default(0)|qty }} {{ item.unit }})
+          </option>
+        {% endfor %}
+      </select>
+    </p>
 
-      <div class="wl-field">
-        <label for="delta">Or Adjust By (+/−)</label>
-        <input type="number" step="0.001" name="delta" id="delta" placeholder="e.g. 100 or -50">
-      </div>
+    <p>
+      <label for="absolute">Set Absolute Stock To</label>
+      <input type="number" step="0.001" name="absolute" id="absolute" placeholder="Leave blank to use the adjustment below">
+    </p>
 
-      <p class="wl-note">
-        Use this for opening stock, physical count corrections, or wastage.
-        Sales and purchases adjust stock automatically.
-        If you fill both boxes, the absolute value wins.
-      </p>
+    <p>
+      <label for="delta">Or Adjust By (+/−)</label>
+      <input type="number" step="0.001" name="delta" id="delta" placeholder="e.g. 100 or -50">
+    </p>
 
-      <p class="wl-note">
-        Low stock threshold for this item: <strong class="mono">{{ threshold|qty }} {{ item.unit }}</strong>
-      </p>
+    <p>
+      Use this for opening stock, physical count corrections, or wastage.
+      Sales and purchases adjust stock automatically.
+      If you fill both boxes, the absolute value wins.
+    </p>
 
-      <div class="wl-form-actions">
-        <a class="wl-btn wl-btn-secondary" href="{{ back_url }}">Cancel</a>
-        <button class="wl-btn wl-btn-accent" type="submit">Apply</button>
-      </div>
-    </form>
-  </div>
+    <p>
+      Low stock threshold for this item: <strong>{{ threshold|qty }} {{ item.unit }}</strong>
+    </p>
+
+    <p>
+      <a href="{{ back_url }}">Cancel</a>
+      <button type="submit">Apply</button>
+    </p>
+  </form>
 {% endblock %}

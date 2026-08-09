@@ -185,6 +185,16 @@ class Party implements \Stringable
         return $this;
     }
 
+    /**
+     * Transient: the live balance is computed by LedgerService, never stored.
+     * The getter exists only so EasyAdmin can read it as a virtual field —
+     * PartyCrudController renders the real value via formatValue().
+     */
+    public function getLedgerBalance(): ?float
+    {
+        return null;
+    }
+
     public function __toString(): string
     {
         return $this->name;

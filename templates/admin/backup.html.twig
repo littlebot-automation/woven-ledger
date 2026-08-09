@@ -1,50 +1,44 @@
-{% extends 'admin/layout.html.twig' %}
+{% extends '@EasyAdmin/page/content.html.twig' %}
 
-{% block content %}
-  <div class="wl-grid-2">
-    <div class="wl-card wl-card-pad">
-      <div class="wl-section-title">Export</div>
-      <p class="wl-note">
-        Downloads every record as a single JSON file — settings, plants, parties,
-        items with plant-wise stock, staff, work entries, invoices, bills, receipts
-        and payments. Keep it somewhere safe.
-      </p>
+{% block content_title %}{{ page_title }}{% endblock %}
 
-      <div class="wl-table-wrap" style="margin:12px 0;">
-        <table>
-          <tbody>
-            {% for label, count in counts %}
-              <tr><td>{{ label }}</td><td class="num mono">{{ count }}</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+{% block main %}
+  <h2>Export</h2>
+  <p>
+    Downloads every record as a single JSON file — settings, plants, parties,
+    items with plant-wise stock, staff, work entries, invoices, bills, receipts
+    and payments. Keep it somewhere safe.
+  </p>
 
-      <a class="wl-btn wl-btn-accent" href="{{ path('admin_backup_export') }}">⬇ Download Backup</a>
-    </div>
+  <table>
+    <tbody>
+      {% for label, count in counts %}
+        <tr><td>{{ label }}</td><td>{{ count }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
-    <div class="wl-card wl-card-pad">
-      <div class="wl-section-title">Restore</div>
-      <div class="wl-warn-box">
-        Restoring <strong>replaces everything</strong> currently in the database.
-        This cannot be undone — export first if you are unsure.
-      </div>
+  <p><a href="{{ path('admin_backup_export') }}">Download Backup</a></p>
 
-      <form method="post" action="{{ path('admin_backup_import') }}" enctype="multipart/form-data">
-        <div class="wl-field">
-          <label for="backup">Backup file (.json)</label>
-          <input type="file" name="backup" id="backup" accept="application/json,.json" required>
-        </div>
+  <h2>Restore</h2>
+  <p>
+    Restoring <strong>replaces everything</strong> currently in the database.
+    This cannot be undone — export first if you are unsure.
+  </p>
 
-        <label class="wl-check">
-          <input type="checkbox" name="confirm" value="1">
-          I understand this will erase all existing data and replace it.
-        </label>
+  <form method="post" action="{{ path('admin_backup_import') }}" enctype="multipart/form-data">
+    <p>
+      <label for="backup">Backup file (.json)</label>
+      <input type="file" name="backup" id="backup" accept="application/json,.json" required>
+    </p>
 
-        <div class="wl-form-actions">
-          <button class="wl-btn wl-btn-danger" type="submit">Restore From Backup</button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <p>
+      <label>
+        <input type="checkbox" name="confirm" value="1">
+        I understand this will erase all existing data and replace it.
+      </label>
+    </p>
+
+    <p><button type="submit">Restore From Backup</button></p>
+  </form>
 {% endblock %}

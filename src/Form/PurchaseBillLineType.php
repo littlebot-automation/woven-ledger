@@ -6,6 +6,7 @@ namespace App\Form;
 
 use App\Entity\Item;
 use App\Entity\PurchaseBillLine;
+use App\Form\EventListener\DefaultRateFromItemListener;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
@@ -14,8 +15,15 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class PurchaseBillLineType extends AbstractType
 {
+    public function __construct(
+        private readonly DefaultRateFromItemListener $defaultRate,
+    ) {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $builder->addEventSubscriber($this->defaultRate);
+
         $builder
             ->add('item', EntityType::class, [
                 'class' => Item::class,
@@ -23,23 +31,18 @@ class PurchaseBillLineType extends AbstractType
                 'placeholder' => 'Select item',
                 'required' => false,
                 'label' => 'Item',
-                'attr' => ['class' => 'wl-li-item'],
-                'choice_attr' => static fn (Item $item): array => [
-                    'data-rate' => (string) $item->getDefaultRate(),
-                    'data-unit' => $item->getUnit(),
-                ],
             ])
             ->add('qty', NumberType::class, [
                 'scale' => 3,
                 'required' => false,
                 'label' => 'Qty',
-                'attr' => ['class' => 'wl-li-qty', 'step' => '0.001'],
+                'attr' => ['step' => '0.001'],
             ])
             ->add('rate', NumberType::class, [
                 'scale' => 2,
                 'required' => false,
                 'label' => 'Rate',
-                'attr' => ['class' => 'wl-li-rate', 'step' => '0.01'],
+                'attr' => ['step' => '0.01'],
             ]);
     }
 

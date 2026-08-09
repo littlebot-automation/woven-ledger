@@ -9,6 +9,7 @@ use App\Repository\PartyRepository;
 use App\Repository\SettingsRepository;
 use App\Service\LedgerService;
 use App\Service\NavigationProvider;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,7 +25,12 @@ class LedgerController extends AbstractController
     ) {
     }
 
-    #[Route('/admin/ledger', name: 'admin_ledger')]
+    /**
+     * #[AdminRoute] rather than #[Route] so the page gets an AdminContext and can
+     * render inside the EasyAdmin layout. The path and name are appended to the
+     * dashboard's, so this stays /admin/ledger and 'admin_ledger'.
+     */
+    #[AdminRoute(path: '/ledger', name: 'ledger')]
     public function index(Request $request): Response
     {
         $parties = $this->partyRepository->findBy([], ['name' => 'ASC']);
@@ -38,12 +44,10 @@ class LedgerController extends AbstractController
 
         $selected ??= $parties[0] ?? null;
 
-        [$title, $subtitle] = $this->navigation->getPageMeta('ledger');
+        [$title] = $this->navigation->getPageMeta('ledger');
 
         return $this->render('admin/ledger.html.twig', [
             'page_title' => $title,
-            'page_subtitle' => $subtitle,
-            'active_nav' => 'ledger',
             'parties' => $parties,
             'party' => $selected,
             'entries' => $selected instanceof Party ? $this->ledgerService->getEntries($selected) : [],

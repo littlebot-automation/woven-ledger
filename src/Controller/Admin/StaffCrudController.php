@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\Staff;
 use App\Repository\StaffWorkRepository;
+use App\Service\IndianNumberFormatter;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
@@ -18,6 +19,7 @@ class StaffCrudController extends AbstractCrudController
 {
     public function __construct(
         private readonly StaffWorkRepository $staffWorkRepository,
+        private readonly IndianNumberFormatter $numbers,
     ) {
     }
 
@@ -66,9 +68,9 @@ class StaffCrudController extends AbstractCrudController
             ->onlyOnIndex()
             ->setSortable(false)
             ->renderAsHtml()
-            ->formatValue(static fn ($value, Staff $staff): string => \sprintf(
-                '<span class="mono">₹%s</span> <small>/ %s</small>',
-                number_format($staff->getEffectiveRate(), 2),
+            ->formatValue(fn ($value, Staff $staff): string => \sprintf(
+                '<span class="mono">%s</span> <small>/ %s</small>',
+                $this->numbers->inr($staff->getEffectiveRate()),
                 'daily' === $staff->getWageType() ? 'day' : 'unit',
             ));
     }

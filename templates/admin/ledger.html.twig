@@ -1,64 +1,76 @@
-{% extends 'admin/layout.html.twig' %}
+{% extends '@EasyAdmin/page/content.html.twig' %}
 
-{% block content %}
+{% block content_title %}{{ page_title }}{% endblock %}
+
+{% block page_actions %}
+  {% if party %}
+    <a class="btn btn-secondary" href="{{ path('admin_ledger_print', {id: party.id}) }}" target="_blank">
+      <i class="fa fa-print"></i> Print
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block main %}
   {% if parties is empty %}
-    <div class="wl-card wl-card-pad">
-      {% include 'admin/_empty_state.html.twig' with {icon: '📒', text: 'Add a customer or supplier first — the ledger builds itself from their transactions.'} %}
+    <div class="alert alert-info">
+      Add a customer or supplier first — the ledger builds itself from their transactions.
     </div>
   {% else %}
-    <div class="wl-toolbar">
-      <form method="get" action="{{ path('admin_ledger') }}" class="wl-inline-form">
-        <label for="party">Party</label>
-        <select name="party" id="party" onchange="this.form.submit()">
+    <form method="get" action="{{ path('admin_ledger') }}" class="row g-2 align-items-end mb-3">
+      <div class="col-auto">
+        <label class="form-label" for="party">Party</label>
+        <select name="party" id="party" class="form-select" onchange="this.form.submit()">
           {% for p in parties %}
             <option value="{{ p.id }}"{{ party and party.id == p.id ? ' selected' : '' }}>{{ p.name }}</option>
           {% endfor %}
         </select>
-        <noscript><button class="wl-btn" type="submit">Show</button></noscript>
-      </form>
+      </div>
+      <noscript>
+        <div class="col-auto"><button type="submit" class="btn btn-primary">Show</button></div>
+      </noscript>
+    </form>
 
-      {% if party %}
-        <a class="wl-btn wl-btn-secondary" href="{{ path('admin_ledger_print', {id: party.id}) }}" target="_blank">🖨 Print</a>
-      {% endif %}
-    </div>
+    <table class="table datagrid{{ entries is empty ? ' datagrid-empty' : '' }}">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Ref</th>
+          <th class="text-end">Amount</th>
+          <th class="text-end">Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+          <tr>
+            <td>{{ entry.date|date('d M Y') }}</td>
+            <td>{{ entry.type }}</td>
+            <td>{{ entry.ref }}</td>
+            <td class="text-end{{ entry.amount >= 0 ? ' text-success' : ' text-danger' }}">
+              {{ entry.amount >= 0 ? '+' : '−' }}{{ entry.amount|abs|inr }}
+            </td>
+            <td class="text-end">{{ entry.balance|abs|inr }}</td>
+          </tr>
+        {% else %}
+          <tr class="no-results">
+            <td colspan="100">No transactions for this party yet.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
 
-    <div class="wl-card">
-      {% if entries is empty %}
-        <div class="wl-card-pad">
-          {% include 'admin/_empty_state.html.twig' with {icon: '📄', text: 'No transactions for this party yet.'} %}
+    {% if entries is not empty %}
+      {% if balance > 0.01 %}
+        <div class="alert alert-success mt-3">
+          <strong>{{ party.name }}</strong> owes you <strong>{{ balance|inr }}</strong>
+        </div>
+      {% elseif balance < -0.01 %}
+        <div class="alert alert-warning mt-3">
+          You owe <strong>{{ party.name }}</strong> <strong>{{ balance|abs|inr }}</strong>
         </div>
       {% else %}
-        <div class="wl-table-wrap">
-          <table>
-            <thead>
-              <tr><th>Date</th><th>Type</th><th>Ref</th><th class="num">Amount</th><th class="num">Balance</th></tr>
-            </thead>
-            <tbody>
-              {% for entry in entries %}
-                <tr>
-                  <td>{{ entry.date|date('d M Y') }}</td>
-                  <td>{{ entry.type }}</td>
-                  <td class="mono">{{ entry.ref }}</td>
-                  <td class="num mono {{ entry.amount >= 0 ? 'wl-bal-pos' : 'wl-bal-neg' }}">
-                    {{ entry.amount >= 0 ? '+' : '−' }}{{ entry.amount|abs|inr }}
-                  </td>
-                  <td class="num mono">{{ entry.balance|abs|inr }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="wl-card-pad wl-ledger-foot">
-          {% if balance > 0.01 %}
-            <strong class="wl-bal-pos">{{ party.name }} owes you {{ balance|inr }}</strong>
-          {% elseif balance < -0.01 %}
-            <strong class="wl-bal-neg">You owe {{ party.name }} {{ balance|abs|inr }}</strong>
-          {% else %}
-            <strong>Account settled — nothing outstanding.</strong>
-          {% endif %}
-        </div>
+        <div class="alert alert-secondary mt-3">Account settled — nothing outstanding.</div>
       {% endif %}
-    </div>
+    {% endif %}
   {% endif %}
 {% endblock %}

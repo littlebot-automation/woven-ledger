@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\Item;
 use App\Repository\PlantRepository;
+use App\Service\IndianNumberFormatter;
 use App\Service\StockService;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -21,6 +22,7 @@ class ItemCrudController extends AbstractCrudController
     public function __construct(
         private readonly StockService $stockService,
         private readonly PlantRepository $plantRepository,
+        private readonly IndianNumberFormatter $numbers,
     ) {
     }
 
@@ -89,10 +91,10 @@ class ItemCrudController extends AbstractCrudController
                     $qty = $item->getStockFor($plant);
 
                     $parts[] = \sprintf(
-                        '<span class="wl-stock-cell"><small>%s</small> <span class="mono %s">%s</span></span>',
+                        '<span><small>%s</small> %s%s</span>',
                         htmlspecialchars($plant->getName(), \ENT_QUOTES),
-                        $qty <= $threshold ? 'wl-stock-low' : '',
-                        $this->trimQty($qty),
+                        $this->numbers->qty($qty),
+                        $qty <= $threshold ? ' <small>(low)</small>' : '',
                     );
                 }
 
@@ -107,13 +109,8 @@ class ItemCrudController extends AbstractCrudController
             ->renderAsHtml()
             ->formatValue(fn ($value, Item $item): string => \sprintf(
                 '<strong class="mono">%s %s</strong>',
-                $this->trimQty($item->getTotalStock()),
+                $this->numbers->qty($item->getTotalStock()),
                 htmlspecialchars($item->getUnit(), \ENT_QUOTES),
             ));
-    }
-
-    private function trimQty(float $qty): string
-    {
-        return rtrim(rtrim(number_format($qty, 3, '.', ','), '0'), '.');
     }
 }

@@ -10,12 +10,12 @@ use App\Repository\PlantRepository;
 use App\Repository\SettingsRepository;
 use App\Service\NavigationProvider;
 use App\Service\StockService;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Manual stock adjustment — spec §4.2. Used for opening stock, physical-count
@@ -32,7 +32,7 @@ class ItemStockController extends AbstractController
     ) {
     }
 
-    #[Route('/admin/item/{id}/adjust', name: 'admin_item_adjust', requirements: ['id' => '\d+'])]
+    #[AdminRoute(path: '/item/{id}/adjust', name: 'item_adjust', options: ['requirements' => ['id' => '\d+']])]
     public function adjust(Item $item, Request $request): Response
     {
         $plants = $this->plantRepository->findAllOrdered();
@@ -84,8 +84,6 @@ class ItemStockController extends AbstractController
 
         return $this->render('admin/item_adjust.html.twig', [
             'page_title' => 'Adjust Stock — '.$item->getName(),
-            'page_subtitle' => 'Opening stock, physical count corrections and wastage',
-            'active_nav' => 'items',
             'item' => $item,
             'plants' => $plants,
             'current' => $current,

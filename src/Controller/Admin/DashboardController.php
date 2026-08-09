@@ -8,14 +8,14 @@ use App\Repository\SettingsRepository;
 use App\Service\NavigationProvider;
 use App\Service\ReportService;
 use App\Service\StockService;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
 
+#[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 class DashboardController extends AbstractDashboardController
 {
     public function __construct(
@@ -26,15 +26,12 @@ class DashboardController extends AbstractDashboardController
     ) {
     }
 
-    #[Route('/admin', name: 'admin')]
     public function index(): Response
     {
-        [$title, $subtitle] = $this->navigation->getPageMeta('dashboard');
+        [$title] = $this->navigation->getPageMeta('dashboard');
 
         return $this->render('admin/dashboard.html.twig', [
             'page_title' => $title,
-            'page_subtitle' => $subtitle,
-            'active_nav' => 'dashboard',
             'data' => $this->reportService->dashboardData(),
             'settings' => $this->settingsRepository->getSettings(),
         ]);
@@ -43,16 +40,7 @@ class DashboardController extends AbstractDashboardController
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
-            ->setTitle('<span class="wl-brand-mark">▨</span> <span class="wl-brand-name">Woven Ledger</span>')
-            ->renderContentMaximized()
-            ->generateRelativeUrls();
-    }
-
-    public function configureAssets(): Assets
-    {
-        return Assets::new()
-            ->addCssFile('css/woven.css')
-            ->addJsFile('js/woven.js');
+            ->setTitle('Woven Ledger');
     }
 
     public function configureCrud(): Crud
@@ -89,7 +77,7 @@ class DashboardController extends AbstractDashboardController
                     continue;
                 }
 
-                $menuItem = MenuItem::linkToCrud($label, '', $item['entity']);
+                $menuItem = MenuItem::linkTo($item['controller'], $label);
 
                 if ('items' === $item['id'] && $lowStock > 0) {
                     $menuItem->setBadge((string) $lowStock, 'danger');

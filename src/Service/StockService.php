@@ -25,6 +25,7 @@ class StockService
         private readonly PlantRepository $plantRepository,
         private readonly SettingsRepository $settingsRepository,
         private readonly EntityManagerInterface $em,
+        private readonly IndianNumberFormatter $numbers,
     ) {
     }
 
@@ -136,7 +137,7 @@ class StockService
 
         return \sprintf(
             'Stock warning: only %s %s of "%s" available at %s.',
-            rtrim(rtrim(number_format($available, 3, '.', ''), '0'), '.'),
+            $this->numbers->qty($available),
             $item->getUnit(),
             $item->getName(),
             $plant->getName(),

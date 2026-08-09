@@ -28,10 +28,9 @@ use App\Entity\StaffWork;
 /**
  * Single source of truth for the sidebar — spec §2.
  *
- * Both the EasyAdmin menu and the standalone pages' own layout read this, so the
- * two shells cannot drift apart. Each CRUD entry carries its entity (for
- * EasyAdmin's MenuItem::linkToCrud) and its controller (so the standalone layout
- * can build a plain query-string admin URL without an AdminContext).
+ * The EasyAdmin menu and the page titles of the standalone pages both read this,
+ * so the two cannot drift apart. Each CRUD entry carries its controller, which is
+ * what EasyAdmin's MenuItem::linkTo() links to.
  */
 class NavigationProvider
 {

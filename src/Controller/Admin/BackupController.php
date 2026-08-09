@@ -19,6 +19,7 @@ use App\Entity\StaffWork;
 use App\Repository\SettingsRepository;
 use App\Service\NavigationProvider;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -39,15 +40,13 @@ class BackupController extends AbstractController
     ) {
     }
 
-    #[Route('/admin/backup', name: 'admin_backup')]
+    #[AdminRoute(path: '/backup', name: 'backup')]
     public function index(): Response
     {
-        [$title, $subtitle] = $this->navigation->getPageMeta('backup');
+        [$title] = $this->navigation->getPageMeta('backup');
 
         return $this->render('admin/backup.html.twig', [
             'page_title' => $title,
-            'page_subtitle' => $subtitle,
-            'active_nav' => 'backup',
             'counts' => $this->counts(),
             'settings' => $this->settingsRepository->getSettings(),
         ]);

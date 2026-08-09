@@ -195,6 +195,21 @@ class Item implements \Stringable
         return $total;
     }
 
+    /**
+     * Transient: the admin list builds the plant-wise chips itself under this
+     * name. The getter exists only so EasyAdmin can read it as a virtual field.
+     */
+    public function getPlantStocks(): ?string
+    {
+        return null;
+    }
+
+    /** Transient companion to getPlantStocks(), rendering getTotalStock(). */
+    public function getItemTotal(): ?string
+    {
+        return null;
+    }
+
     public function __toString(): string
     {
         return $this->name;

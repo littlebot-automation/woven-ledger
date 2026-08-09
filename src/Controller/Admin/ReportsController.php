@@ -7,10 +7,10 @@ namespace App\Controller\Admin;
 use App\Repository\SettingsRepository;
 use App\Service\NavigationProvider;
 use App\Service\ReportService;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
 
 class ReportsController extends AbstractController
 {
@@ -21,7 +21,7 @@ class ReportsController extends AbstractController
     ) {
     }
 
-    #[Route('/admin/reports', name: 'admin_reports')]
+    #[AdminRoute(path: '/reports', name: 'reports')]
     public function index(Request $request): Response
     {
         $tab = (string) $request->query->get('tab', 'sales');
@@ -30,12 +30,10 @@ class ReportsController extends AbstractController
             $tab = 'sales';
         }
 
-        [$title, $subtitle] = $this->navigation->getPageMeta('reports');
+        [$title] = $this->navigation->getPageMeta('reports');
 
         return $this->render('admin/reports.html.twig', [
             'page_title' => $title,
-            'page_subtitle' => $subtitle,
-            'active_nav' => 'reports',
             'tabs' => ReportService::TABS,
             'tab' => $tab,
             'data' => $this->reportService->reportData($tab),

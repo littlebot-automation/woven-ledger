@@ -148,6 +148,15 @@ class Staff implements \Stringable
         return 'daily' === $this->wageType ? $this->getDailyRate() : $this->getPieceRate();
     }
 
+    /**
+     * Transient: the admin list renders getEffectiveRate() under this name.
+     * The getter exists only so EasyAdmin can read it as a virtual field.
+     */
+    public function getStaffRate(): ?float
+    {
+        return null;
+    }
+
     public function __toString(): string
     {
         return $this->name;
