@@ -36,17 +36,23 @@ import com.wovenledger.app.data.repository.PaymentRepository
 import com.wovenledger.app.data.repository.PurchaseBillRepository
 import com.wovenledger.app.data.repository.SalesInvoiceRepository
 import com.wovenledger.app.ui.components.AmountRow
+import com.wovenledger.app.ui.components.DateRange
+import com.wovenledger.app.ui.components.DateRangeFilter
 import com.wovenledger.app.ui.components.DocumentList
 import com.wovenledger.app.ui.components.DocumentSummary
 import com.wovenledger.app.ui.components.EmptyState
+import com.wovenledger.app.ui.components.FilterSummary
 import com.wovenledger.app.ui.components.MoneyText
 import com.wovenledger.app.ui.components.formatMoney
 import com.wovenledger.app.ui.components.formatDate
 import com.wovenledger.app.ui.navigation.NavigationRoutes
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import javax.inject.Inject
@@ -66,28 +72,62 @@ class SalesInvoicesViewModel @Inject constructor(
     parties: PartyRepository,
 ) : ViewModel() {
 
+    private val _range = MutableStateFlow(DateRange())
+    val range: StateFlow<DateRange> = _range.asStateFlow()
+
+    fun onRangeChange(value: DateRange) {
+        _range.value = value
+    }
+
     val documents: StateFlow<List<DocumentSummary>> =
-        combine(invoices.getAll(), parties.getAll()) { all, allParties ->
+        combine(invoices.getAll(), parties.getAll(), _range) { all, allParties, window ->
             val names = namesById(allParties)
-            all.map {
-                DocumentSummary(it.id, it.no, subtitle(it.date, names[it.partyId]), it.total)
-            }
+            all.filter { window.contains(it.date) }
+                .map {
+                    DocumentSummary(it.id, it.no, subtitle(it.date, names[it.partyId]), it.total)
+                }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** What the filter left on screen — the figure worth having when narrowing a period. */
+    val total: StateFlow<Long> = documents
+        .map { shown -> shown.sumOf { it.amount } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0L)
 }
 
 @Composable
 fun SalesInvoicesListScreen(navController: NavHostController) {
     val viewModel: SalesInvoicesViewModel = hiltViewModel()
     val documents by viewModel.documents.collectAsStateWithLifecycle()
+    val range by viewModel.range.collectAsStateWithLifecycle()
+    val total by viewModel.total.collectAsStateWithLifecycle()
 
-    DocumentList(
-        documents = documents,
-        emptyMessage = "No sales invoices yet.",
-        onOpen = { navController.navigate("${NavigationRoutes.SALES_INVOICE_DETAIL_BASE}/$it") },
-        modifier = Modifier.fillMaxSize(),
-        onCreate = { navController.navigate(NavigationRoutes.SALES_INVOICE_CREATE) },
-        createLabel = "New sales invoice",
-    )
+    Column(modifier = Modifier.fillMaxSize()) {
+        DateRangeFilter(
+            range = range,
+            onChange = viewModel::onRangeChange,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+
+        if (range.isActive) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                FilterSummary(count = documents.size, total = total)
+                HorizontalDivider()
+            }
+        }
+
+        DocumentList(
+            documents = documents,
+            emptyMessage = if (range.isActive) {
+                "No invoices in that period. Widen the dates, or clear the filter."
+            } else {
+                "No sales invoices yet."
+            },
+            onOpen = { navController.navigate("${NavigationRoutes.SALES_INVOICE_DETAIL_BASE}/$it") },
+            modifier = Modifier.weight(1f),
+            onCreate = { navController.navigate(NavigationRoutes.SALES_INVOICE_CREATE) },
+            createLabel = "New sales invoice",
+        )
+    }
 }
 
 @HiltViewModel

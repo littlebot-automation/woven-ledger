@@ -36,6 +36,9 @@ import com.wovenledger.app.data.repository.PurchaseBillRepository
 import com.wovenledger.app.data.repository.SalesInvoiceRepository
 import com.wovenledger.app.data.repository.StaffRepository
 import com.wovenledger.app.data.repository.StaffWorkRepository
+import androidx.compose.material3.Surface
+import com.wovenledger.app.ui.components.DateRange
+import com.wovenledger.app.ui.components.DateRangeFilter
 import com.wovenledger.app.ui.components.EmptyState
 import com.wovenledger.app.ui.components.MoneyTone
 import com.wovenledger.app.ui.components.MoneyText
@@ -43,8 +46,10 @@ import com.wovenledger.app.ui.components.formatDate
 import com.wovenledger.app.ui.components.formatMoney
 import com.wovenledger.app.ui.screens.stock.StockReportBody
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
@@ -82,13 +87,39 @@ class ReportsViewModel @Inject constructor(
     staffWork: StaffWorkRepository,
 ) : ViewModel() {
 
+    private val _range = MutableStateFlow(DateRange())
+    val range: StateFlow<DateRange> = _range.asStateFlow()
+
+    fun onRangeChange(value: DateRange) {
+        _range.value = value
+    }
+
     val data: StateFlow<ReportsData> = combine(
         salesInvoices.getAll(),
         purchaseBills.getAll(),
         parties.getAll(),
         staff.getAll(),
         staffWork.getAll(),
-    ) { invoices, bills, allParties, allStaff, work ->
+        _range,
+    ) { values ->
+        @Suppress("UNCHECKED_CAST")
+        val invoicesAll = values[0] as List<com.wovenledger.app.data.entities.SalesInvoice>
+        @Suppress("UNCHECKED_CAST")
+        val billsAll = values[1] as List<com.wovenledger.app.data.entities.PurchaseBill>
+        @Suppress("UNCHECKED_CAST")
+        val allParties = values[2] as List<com.wovenledger.app.data.entities.Party>
+        @Suppress("UNCHECKED_CAST")
+        val allStaff = values[3] as List<com.wovenledger.app.data.entities.Staff>
+        @Suppress("UNCHECKED_CAST")
+        val workAll = values[4] as List<com.wovenledger.app.data.entities.StaffWork>
+        val window = values[5] as DateRange
+
+        // Only dated records can be windowed. Party balances and stock are positions as
+        // they stand today, not activity over a period, so they ignore the filter.
+        val invoices = invoicesAll.filter { window.contains(it.date) }
+        val bills = billsAll.filter { window.contains(it.date) }
+        val work = workAll.filter { window.contains(it.date) }
+
         val partyNames = allParties.associate { it.id to it.name }
 
         val sales = Report(
@@ -156,19 +187,20 @@ class ReportsViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportsData())
 }
 
-private enum class Tab(val label: String) {
-    Sales("Sales"),
-    Purchases("Purchases"),
-    Stock("Stock"),
-    Receivables("Receivables"),
-    Payables("Payables"),
-    StaffPayments("Staff wages"),
+private enum class Tab(val label: String, val dated: Boolean) {
+    Sales("Sales", dated = true),
+    Purchases("Purchases", dated = true),
+    Stock("Stock", dated = false),
+    Receivables("Receivables", dated = false),
+    Payables("Payables", dated = false),
+    StaffPayments("Staff wages", dated = true),
 }
 
 @Composable
 fun ReportsScreen(navController: NavHostController) {
     val viewModel: ReportsViewModel = hiltViewModel()
     val data by viewModel.data.collectAsStateWithLifecycle()
+    val range by viewModel.range.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(Tab.Sales) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -185,6 +217,16 @@ fun ReportsScreen(navController: NavHostController) {
                     label = { Text(entry.label) },
                 )
             }
+        }
+
+        // Receivables, payables and stock are positions as they stand now, not activity
+        // over a period, so a date window would be meaningless on them.
+        if (tab.dated) {
+            DateRangeFilter(
+                range = range,
+                onChange = viewModel::onRangeChange,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
         }
 
         when (tab) {
@@ -210,37 +252,21 @@ fun ReportsScreen(navController: NavHostController) {
 @Composable
 private fun ReportBody(report: Report, header: (@Composable () -> Unit)? = null) {
     if (report.rows.isEmpty() && header == null) {
-        EmptyState("Nothing to report yet.")
+        EmptyState("Nothing matches. Widen the dates, or clear the filter.")
         return
     }
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (header != null) {
-            item { header() }
-        }
-
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = report.totalLabel,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                MoneyText(report.total, emphasis = true)
+    Column(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (header != null) {
+                item { header() }
             }
-            HorizontalDivider()
-        }
 
-        items(report.rows, key = { it.title }) { row ->
+            items(report.rows, key = { it.title }) { row ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -262,6 +288,35 @@ private fun ReportBody(report: Report, header: (@Composable () -> Unit)? = null)
                     }
                     MoneyText(row.amount, tone = row.tone)
                 }
+            }
+            }
+        }
+
+        // The total sits under the list rather than above it: after narrowing the
+        // dates, the figure you came for is the last thing you read, not the first.
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp,
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text(
+                        text = report.totalLabel,
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = if (report.rows.size == 1) "1 entry" else "${report.rows.size} entries",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                MoneyText(report.total, emphasis = true)
             }
         }
     }
