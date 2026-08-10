@@ -1,0 +1,55 @@
+{# A party's running account as a table: one table, two hosts — the Party Ledger
+   screen and the Party detail page. Expects `ledger` exactly as
+   LedgerPaginator::paginate() returns it, and nothing else, so it is included
+   with_context: false from both.
+
+   Rows arrive newest first and already sliced to one page; the balance column is
+   whatever LedgerService computed over the whole ledger, never recomputed here.
+   The print statement does not use this partial — it renders every row itself. #}
+{% set entries = ledger.entries %}
+<table class="table datagrid{{ entries is empty ? ' datagrid-empty' : '' }}">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Type</th>
+      <th>Ref</th>
+      <th class="text-end">Amount</th>
+      <th class="text-end">Balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in entries %}
+      <tr>
+        <td>{{ entry.date|date('d M Y') }}</td>
+        <td>{{ entry.type }}</td>
+        <td>{{ entry.ref }}</td>
+        <td class="text-end{{ entry.amount >= 0 ? ' text-success' : ' text-danger' }}">
+          {{ entry.amount >= 0 ? '+' : '−' }}{{ entry.amount|abs|inr }}
+        </td>
+        <td class="text-end">{{ entry.balance|abs|inr }}</td>
+      </tr>
+    {% else %}
+      <tr class="no-results">
+        <td colspan="100">No transactions for this party yet.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{# Most parties here have fewer than one page of history, so a single page draws
+   no controls at all rather than a row of dead buttons.
+
+   The links keep every other query parameter (EasyAdmin's own crudAction /
+   entityId, the ledger screen's ?party) and only swap ledger_page, which is
+   named so it can never collide with EasyAdmin's index ?page. #}
+{% if ledger.page_count > 1 %}
+  {% set carried = app.request.query.all|filter((value, key) => key != 'ledger_page') %}
+  {% set url_pattern = app.request.pathInfo ~ '?' ~ carried|url_encode ~ (carried is empty ? '' : '&') ~ 'ledger_page={page}' %}
+
+  <twig:ea:Pagination
+    currentPage="{{ ledger.current_page }}"
+    totalItems="{{ ledger.total }}"
+    pageSize="{{ ledger.per_page }}"
+    urlPattern="{{ url_pattern }}"
+  />
+{% endif %}

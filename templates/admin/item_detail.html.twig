@@ -1,0 +1,87 @@
+{# Scoped to Item's detail page by ItemCrudController::configureCrud(). It exists
+   solely to hang the item's stock movement history under the master-data fields.
+
+   It extends EasyAdmin's own detail template by its literal bundle path (not
+   ea.templatePath('crud/detail'), which now resolves back to this file) and calls
+   parent() first, so the field list, the fieldsets and the delete confirmation
+   modal keep rendering exactly as EasyAdmin renders them. #}
+{% extends '@EasyAdmin/crud/detail.html.twig' %}
+
+{% block main %}
+  {{ parent() }}
+
+  {# stock_history is supplied by ItemCrudController::configureResponseParameters(). #}
+  {% set history = stock_history|default({entries: [], current: 0, unaccounted: 0, closing: 0}) %}
+
+  <h2 class="mt-4 mb-3">Stock Movement History</h2>
+
+  {% if history.unaccounted|abs > 0.0005 %}
+    <div class="alert alert-warning">
+      {# The gap is signed: goods that appeared from nowhere read differently from
+         goods that vanished, and lumping both under one wording would obscure it. #}
+      <strong>{{ history.unaccounted|abs|qty }} {{ entity.instance.unit }}</strong> of
+      stock {{ history.unaccounted > 0 ? 'in' : 'out' }} cannot be traced to anything.
+      Purchases and sales are reconstructed from their line items, and manual
+      adjustments have been recorded since this history was added — but adjustments
+      made before that moved stock without leaving any record, and the difference
+      cannot be recovered. It is shown below as <em>Opening / unaccounted</em>, dated
+      "—" because nothing says when it happened, so the running balance still closes
+      on the real figure instead of quietly disagreeing with it.
+    </div>
+  {% endif %}
+
+  <table class="table datagrid{{ history.entries is empty ? ' datagrid-empty' : '' }}">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Document</th>
+        <th>Plant</th>
+        <th class="text-end">In / Out</th>
+        <th class="text-end">Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in history.entries %}
+        <tr>
+          <td>{{ row.date ? row.date|date('d M Y') : '—' }}</td>
+          <td>{{ row.type }}</td>
+          <td>
+            {% if row.url %}
+              <a href="{{ row.url }}">{{ row.ref }}</a>
+            {% else %}
+              {{ row.ref }}
+            {% endif %}
+          </td>
+          <td>{{ row.plant }}</td>
+          <td class="text-end{{ row.qty >= 0 ? ' text-success' : ' text-danger' }}">
+            {{ row.qty >= 0 ? '+' : '−' }}{{ row.qty|abs|qty }}
+          </td>
+          <td class="text-end">{{ row.balance|qty }}</td>
+        </tr>
+      {% else %}
+        <tr class="no-results">
+          <td colspan="100">No stock has moved for this item yet.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {# The closing balance is engineered to equal the quantity on hand, so the two are
+     compared rather than assumed: if they ever drift apart, the page says so instead
+     of printing a total that contradicts the stock figure above it. #}
+  {% if history.entries is not empty %}
+    {% if (history.closing - history.current)|abs > 0.0005 %}
+      <div class="alert alert-danger mt-3">
+        The history closes on <strong>{{ history.closing|qty }} {{ entity.instance.unit }}</strong>
+        but <strong>{{ history.current|qty }} {{ entity.instance.unit }}</strong> is on hand.
+        Treat the table as incomplete.
+      </div>
+    {% else %}
+      <div class="alert alert-secondary mt-3">
+        Closing balance <strong>{{ history.closing|qty }} {{ entity.instance.unit }}</strong>,
+        matching the quantity on hand across all plants.
+      </div>
+    {% endif %}
+  {% endif %}
+{% endblock %}

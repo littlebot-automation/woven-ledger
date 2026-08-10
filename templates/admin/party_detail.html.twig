@@ -1,0 +1,18 @@
+{# The project's only CRUD template override, scoped to Party's detail page by
+   PartyCrudController::configureCrud(). It exists solely to hang the party's
+   transaction history under the master-data fields.
+
+   It extends EasyAdmin's own detail template by its literal bundle path (not
+   ea.templatePath('crud/detail'), which now resolves back to this file) and
+   calls parent() first, so the field list, the fieldsets and the delete
+   confirmation modal keep rendering exactly as EasyAdmin renders them. #}
+{% extends '@EasyAdmin/crud/detail.html.twig' %}
+
+{% block main %}
+  {{ parent() }}
+
+  {# ledger is supplied by PartyCrudController::configureResponseParameters(),
+     already paginated (newest first, 20 to a page). #}
+  <h2 class="mt-4 mb-3">Transaction History</h2>
+  {{ include('admin/_ledger_table.html.twig', {ledger: ledger|default({entries: [], current_page: 1, page_count: 1, total: 0, per_page: 20})}, with_context: false) }}
+{% endblock %}

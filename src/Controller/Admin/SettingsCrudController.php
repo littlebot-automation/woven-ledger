@@ -67,31 +67,44 @@ class SettingsCrudController extends AbstractCrudController
         );
     }
 
+    /**
+     * Widths are given as responsive Bootstrap classes rather than plain column
+     * counts, so the form folds down to a single column on a phone instead of
+     * squeezing every control into an unreadable sliver.
+     */
     public function configureFields(string $pageName): iterable
     {
+        // The identity of the business: name and GSTIN belong together, and the
+        // address is a textarea, so it gets the whole row to itself.
         yield FormField::addFieldset('Company');
-        yield TextField::new('companyName', 'Company Name');
-        yield TextareaField::new('address', 'Address');
-        yield TextField::new('phone', 'Phone');
-        yield TextField::new('gstin', 'GSTIN');
+        yield TextField::new('companyName', 'Company Name')->setColumns('col-12 col-md-6');
+        yield TextField::new('gstin', 'GSTIN')->setColumns('col-12 col-md-6');
+        yield TextField::new('phone', 'Phone')->setColumns('col-12 col-md-6');
+        yield TextareaField::new('address', 'Address')->setColumns('col-12');
 
+        // A prefix and its next number are one setting in two boxes, so they sit
+        // next to each other: one pair per row when narrow, two pairs when wide.
         yield FormField::addFieldset('Document Numbering');
-        yield TextField::new('invoicePrefix', 'Sales Invoice Prefix');
-        yield IntegerField::new('nextInvoiceNo', 'Next Invoice No');
-        yield TextField::new('purchasePrefix', 'Purchase Bill Prefix');
-        yield IntegerField::new('nextPurchaseNo', 'Next Bill No');
-        yield TextField::new('receiptPrefix', 'Receipt Prefix');
-        yield IntegerField::new('nextReceiptNo', 'Next Receipt No');
-        yield TextField::new('paymentPrefix', 'Payment Prefix');
-        yield IntegerField::new('nextPaymentNo', 'Next Payment No');
+        yield TextField::new('invoicePrefix', 'Sales Invoice Prefix')->setColumns('col-6 col-lg-3');
+        yield IntegerField::new('nextInvoiceNo', 'Next Invoice No')->setColumns('col-6 col-lg-3');
+        yield TextField::new('purchasePrefix', 'Purchase Bill Prefix')->setColumns('col-6 col-lg-3');
+        yield IntegerField::new('nextPurchaseNo', 'Next Bill No')->setColumns('col-6 col-lg-3');
+        yield TextField::new('receiptPrefix', 'Receipt Prefix')->setColumns('col-6 col-lg-3');
+        yield IntegerField::new('nextReceiptNo', 'Next Receipt No')->setColumns('col-6 col-lg-3');
+        yield TextField::new('paymentPrefix', 'Payment Prefix')->setColumns('col-6 col-lg-3');
+        yield IntegerField::new('nextPaymentNo', 'Next Payment No')->setColumns('col-6 col-lg-3');
 
+        // Three unrelated but equally small defaults, so they share one row.
         yield FormField::addFieldset('Defaults');
         yield NumberField::new('lowStockDefault', 'Low Stock Default')
             ->setNumDecimals(3)
-            ->setHelp('Used for any item without its own threshold');
+            ->setHelp('Used for any item without its own threshold')
+            ->setColumns('col-12 col-md-4');
         yield MoneyField::new('defaultWage', 'Default Wage')
-            ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2);
+            ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2)
+            ->setColumns('col-12 col-md-4');
         yield AssociationField::new('currentPlant', 'Active Plant')
-            ->setHelp('Shown in the top bar and used as the default on new documents');
+            ->setHelp('Shown in the top bar and used as the default on new documents')
+            ->setColumns('col-12 col-md-4');
     }
 }

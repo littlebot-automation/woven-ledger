@@ -54,14 +54,18 @@ class ItemStockController extends AbstractController
             $delta = trim((string) $request->request->get('delta', ''));
 
             // An absolute value wins when both boxes are filled.
+            //
+            // The audited *Manually() variants are used here, not setQty()/adjust():
+            // this is the one path that moves stock without a document behind it, so
+            // it is the one path that has to leave a StockMovement row of its own.
             if ('' !== $absolute) {
-                $this->stockService->setQty($item, $plant, (float) $absolute);
+                $this->stockService->setQtyManually($item, $plant, (float) $absolute);
                 $this->addFlash('success', \sprintf(
                     'Stock for "%s" at %s set to %s %s.',
                     $item->getName(), $plant->getName(), $absolute, $item->getUnit(),
                 ));
             } elseif ('' !== $delta) {
-                $this->stockService->adjust($item, $plant, (float) $delta);
+                $this->stockService->adjustManually($item, $plant, (float) $delta);
                 $this->addFlash('success', \sprintf(
                     'Stock for "%s" at %s adjusted by %s %s.',
                     $item->getName(), $plant->getName(), $delta, $item->getUnit(),

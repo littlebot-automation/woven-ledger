@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Entity\Party;
 use App\Repository\PartyRepository;
 use App\Repository\SettingsRepository;
+use App\Service\LedgerPaginator;
 use App\Service\LedgerService;
 use App\Service\NavigationProvider;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
@@ -19,6 +20,7 @@ class LedgerController extends AbstractController
 {
     public function __construct(
         private readonly LedgerService $ledgerService,
+        private readonly LedgerPaginator $ledgerPaginator,
         private readonly PartyRepository $partyRepository,
         private readonly SettingsRepository $settingsRepository,
         private readonly NavigationProvider $navigation,

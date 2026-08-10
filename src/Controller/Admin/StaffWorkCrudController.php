@@ -17,6 +17,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
@@ -27,6 +28,11 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\NumericFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -58,7 +64,12 @@ class StaffWorkCrudController extends AbstractCrudController
             ->setHelp(Crud::PAGE_INDEX, 'Log work and settle staff wages')
             ->setDefaultSort(['date' => 'DESC', 'id' => 'DESC'])
             ->setSearchFields(['workType'])
-            ->setDateFormat('dd MMM yyyy');
+            ->setDateFormat('dd MMM yyyy')
+            // Clicking a row opens the read-only view rather than the form.
+            // Enabling the detail action is not enough on its own: EasyAdmin's
+            // default row action is the chain [EDIT, DETAIL], and EDIT is enabled
+            // here, so it would keep winning. Naming DETAIL moves the link.
+            ->setDefaultRowAction(Action::DETAIL);
     }
 
     public function configureActions(Actions $actions): Actions
@@ -67,7 +78,10 @@ class StaffWorkCrudController extends AbstractCrudController
             ->linkToCrudAction('settleWages')
             ->createAsGlobalAction();
 
-        return $actions->add(Crud::PAGE_INDEX, $settle);
+        return $actions
+            ->add(Crud::PAGE_INDEX, $settle)
+            // DETAIL is not a default index action, so it is added for the row link.
+            ->add(Crud::PAGE_INDEX, Action::DETAIL);
     }
 
     /**
@@ -150,38 +164,72 @@ class StaffWorkCrudController extends AbstractCrudController
         ]);
     }
 
+    /**
+     * This list is read before a settlement run: whose work, over what dates, and
+     * is it still unpaid. Those three lead, in that order.
+     *
+     * "Settled By" is filterable too, so the entries behind one payment voucher
+     * can be pulled up after the fact.
+     */
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters
+            ->add(EntityFilter::new('staff', 'Staff Member'))
+            ->add(DateTimeFilter::new('date', 'Date'))
+            ->add(BooleanFilter::new('paid', 'Paid'))
+            ->add(EntityFilter::new('plant', 'Plant'))
+            ->add(TextFilter::new('workType', 'Work Type'))
+            ->add(NumericFilter::new('amount', 'Amount'))
+            ->add(NumericFilter::new('qty', 'Qty'))
+            ->add(NumericFilter::new('rate', 'Rate'))
+            ->add(EntityFilter::new('paymentVoucher', 'Settled By'));
+    }
+
+    /**
+     * Who did the work and where on one row; what the work was worth on the
+     * next. Rate and Amount are read as a pair against Qty, so all four share a
+     * row on a desktop and fold into pairs before stacking.
+     */
     public function configureFields(string $pageName): iterable
     {
-        yield DateField::new('date', 'Date');
+        yield DateField::new('date', 'Date')->setColumns('col-12 col-md-4');
 
-        yield AssociationField::new('staff', 'Staff Member');
+        yield AssociationField::new('staff', 'Staff Member')->setColumns('col-12 col-md-4');
 
-        yield AssociationField::new('plant', 'Plant');
+        yield AssociationField::new('plant', 'Plant')->setColumns('col-12 col-md-4');
 
         yield TextField::new('workType', 'Work Type')
-            ->setHelp('e.g. Stitching, Loading, Lamination');
+            ->setHelp('e.g. Stitching, Loading, Lamination')
+            ->setColumns('col-12 col-md-6 col-xl-3');
 
         yield NumberField::new('qty', 'Qty')
             ->setNumDecimals(3)
-            ->setFormTypeOption('attr', ['step' => '0.001']);
+            ->setFormTypeOption('attr', ['step' => '0.001'])
+            ->setColumns('col-12 col-md-6 col-xl-3');
 
         yield MoneyField::new('rate', 'Rate')
             ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2)
             ->setFormTypeOption('attr', ['step' => '0.01'])
-            ->setHelp('Leave blank to use the staff member’s wage rate — or type one to override it');
+            ->setHelp('Leave blank to use the staff member’s wage rate — or type one to override it')
+            ->setColumns('col-12 col-md-6 col-xl-3');
 
         yield MoneyField::new('amount', 'Amount')
             ->setCurrency('INR')->setStoredAsCents(false)->setNumDecimals(2)
             ->setFormTypeOption('disabled', true)
-            ->setRequired(false);
+            ->setRequired(false)
+            ->setColumns('col-12 col-md-6 col-xl-3');
 
+        // Both are settlement outcomes rather than inputs, so they start a new
+        // row; on the detail page they read side by side.
         yield BooleanField::new('paid', 'Paid')
             ->renderAsSwitch(false)
             ->setFormTypeOption('disabled', true)
-            ->setHelp('Set by wage settlement');
+            ->setHelp('Set by wage settlement')
+            ->setColumns('col-12 col-md-4');
 
         yield AssociationField::new('paymentVoucher', 'Settled By')
-            ->onlyOnDetail();
+            ->onlyOnDetail()
+            ->setColumns('col-12 col-md-4');
     }
 
     /**

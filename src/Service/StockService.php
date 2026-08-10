@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\Item;
 use App\Entity\ItemStock;
 use App\Entity\Plant;
+use App\Entity\StockMovement;
 use App\Repository\ItemStockRepository;
 use App\Repository\PlantRepository;
 use App\Repository\SettingsRepository;
@@ -51,6 +52,37 @@ class StockService
         $row = $this->row($item, $plant);
         $row->setQty($row->getQty() + $delta);
         $this->em->flush();
+    }
+
+    /**
+     * Absolute set, audited — the manual "physical count / opening stock" path.
+     *
+     * The audit row is written here rather than inside setQty()/adjust() on
+     * purpose. Those two are also what DocumentStockManager::applySnapshot() calls
+     * for every sales invoice and purchase bill, so recording there would put a
+     * StockMovement row beside every document line — and since StockHistoryService
+     * already reconstructs document movement from the lines themselves, every bill
+     * and invoice would be counted twice. These wrappers sit one level up, on the
+     * only path no document takes: {@see \App\Controller\Admin\ItemStockController}.
+     */
+    public function setQtyManually(Item $item, Plant $plant, float $qty, string $reason = ''): void
+    {
+        $before = $this->getQty($item, $plant);
+        $this->setQty($item, $plant, $qty);
+
+        $this->recordMovement($item, $plant, $qty - $before, $reason ?: \sprintf(
+            'Set to %s (was %s)',
+            $this->numbers->qty($qty),
+            $this->numbers->qty($before),
+        ));
+    }
+
+    /** Signed delta, audited. See {@see setQtyManually()} for why the seam is here. */
+    public function adjustManually(Item $item, Plant $plant, float $delta, string $reason = ''): void
+    {
+        $this->adjust($item, $plant, $delta);
+
+        $this->recordMovement($item, $plant, $delta, $reason ?: 'Manual adjustment');
     }
 
     /**
@@ -158,6 +190,27 @@ class StockService
         }
 
         return $out;
+    }
+
+    /**
+     * A no-op movement is not worth an audit row — an operator re-saving the form
+     * with the quantity already on hand has not moved anything.
+     */
+    private function recordMovement(Item $item, Plant $plant, float $delta, string $reason): void
+    {
+        if (abs($delta) < 0.0005) {
+            return;
+        }
+
+        $movement = (new StockMovement())
+            ->setItem($item)
+            ->setPlant($plant)
+            ->setQtyDelta($delta)
+            ->setSource(StockMovement::SOURCE_MANUAL)
+            ->setReason($reason);
+
+        $this->em->persist($movement);
+        $this->em->flush();
     }
 
     /** @param iterable<object> $lines */
