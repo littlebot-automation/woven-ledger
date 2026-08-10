@@ -2,7 +2,9 @@ package com.wovenledger.app.di
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.wovenledger.app.BuildConfig
 import com.wovenledger.app.data.api.WovenLedgerApiService
+import com.wovenledger.app.data.auth.AuthInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,7 +20,12 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object ApiModule {
 
-    private const val BASE_URL = "https://invoice.littlebotautomation.com/"
+    /**
+     * The live portal in a release build, and the machine running the app in a debug
+     * one — 10.0.2.2 is the emulator's route to the host's loopback, so a local Symfony
+     * on :8000 is reachable without republishing anything.
+     */
+    private val BASE_URL = BuildConfig.API_BASE_URL
 
     @Provides
     @Singleton
@@ -28,12 +35,24 @@ object ApiModule {
 
     @Provides
     @Singleton
-    fun provideHttpClient(): OkHttpClient {
+    fun provideHttpClient(auth: AuthInterceptor): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            // BODY on a release build would write the sign-in password and the whole
+            // JWT into logcat, where any other app with log access could read them.
+            // Debug builds still get full bodies, minus the bearer header.
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.BASIC
+            }
+
+            redactHeader("Authorization")
         }
 
         return OkHttpClient.Builder()
+            // Auth first: the logger then sees the request as it will be sent, and
+            // redacts the header it just gained.
+            .addInterceptor(auth)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)

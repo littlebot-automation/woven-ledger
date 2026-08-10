@@ -1,6 +1,9 @@
 package com.wovenledger.app.data.entities
 
 import androidx.room.*
+import com.wovenledger.app.data.outbox.OutboxOperation
+import com.wovenledger.app.data.outbox.OutboxStatus
+import com.wovenledger.app.data.outbox.OutboxTarget
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -540,4 +543,28 @@ object Converters {
     @TypeConverter
     fun toBalanceType(value: String?): BalanceType? =
         value?.let { BalanceType.valueOf(it) }
+
+    // The outbox stores its three enums as their own names, so the queue can be read
+    // with a plain SQL client while diagnosing a phone that will not upload.
+
+    @TypeConverter
+    fun fromOutboxTarget(value: OutboxTarget?): String? = value?.name
+
+    @TypeConverter
+    fun toOutboxTarget(value: String?): OutboxTarget? =
+        value?.let { OutboxTarget.valueOf(it) }
+
+    @TypeConverter
+    fun fromOutboxOperation(value: OutboxOperation?): String? = value?.name
+
+    @TypeConverter
+    fun toOutboxOperation(value: String?): OutboxOperation? =
+        value?.let { OutboxOperation.valueOf(it) }
+
+    @TypeConverter
+    fun fromOutboxStatus(value: OutboxStatus?): String? = value?.name
+
+    @TypeConverter
+    fun toOutboxStatus(value: String?): OutboxStatus? =
+        value?.let { OutboxStatus.valueOf(it) }
 }

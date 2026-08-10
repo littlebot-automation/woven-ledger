@@ -47,6 +47,7 @@ import com.wovenledger.app.ui.components.DateField
 import com.wovenledger.app.ui.components.FormScaffold
 import com.wovenledger.app.ui.components.MoneyField
 import com.wovenledger.app.ui.components.PickerField
+import com.wovenledger.app.ui.components.QueuedBanner
 import com.wovenledger.app.ui.components.WarningBanner
 import com.wovenledger.app.ui.components.failureMessage
 import com.wovenledger.app.ui.components.fieldErrorsOf
@@ -89,7 +90,17 @@ data class DocumentForm(
     val saved: Boolean = false,
     /** Soft stock shortfalls the server reported beside a successful save. */
     val warnings: List<String> = emptyList(),
+    /**
+     * Saved on this phone only, waiting for a connection.
+     *
+     * Worth saying plainly: the document has no number yet and has not been checked
+     * against stock, because the server has not seen it.
+     */
+    val queued: Boolean = false,
 )
+
+/** What a save turned into: sent and answered, or written down for later. */
+data class SaveOutcome(val warnings: List<String>, val queued: Boolean)
 
 /** What an edit form is opened with, read out of Room. */
 data class DocumentSnapshot(
@@ -139,7 +150,14 @@ abstract class DocumentFormViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    protected val allParties: StateFlow<List<Party>> = parties.getAll()
+    /**
+     * Only parties the server knows about.
+     *
+     * A party added with no signal has a negative local id, which means nothing to the
+     * server; a document carrying it would be rejected on upload and stay rejected. It
+     * becomes selectable as soon as it has uploaded.
+     */
+    protected val allParties: StateFlow<List<Party>> = parties.getPostable()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val items: StateFlow<List<Item>> = items.getAll()
@@ -184,7 +202,7 @@ abstract class DocumentFormViewModel(
 
     protected abstract suspend fun load(id: Long): DocumentSnapshot?
 
-    /** @return the warnings the server sent back with a successful save */
+    /** @return what the save turned into: the server's warnings, or a queued write */
     protected abstract suspend fun persist(
         id: Long?,
         partyId: Int,
@@ -193,7 +211,7 @@ abstract class DocumentFormViewModel(
         discountPaise: Long,
         notes: String?,
         lines: List<NewDocumentLine>,
-    ): List<String>
+    ): SaveOutcome
 
     fun onDateChange(value: LocalDate) = _form.update { it.copy(date = value) }
 
@@ -230,8 +248,12 @@ abstract class DocumentFormViewModel(
     fun onLineRateChange(index: Int, value: String) = updateLine(index) { it.copy(rate = value) }
 
     /**
-     * Posts and waits. Writes are online-only, so a failure here means the document
-     * does not exist anywhere — there is no queue that will finish the job later.
+     * Posts and waits — and, if there is no signal, writes the document down here and
+     * queues it instead of losing it.
+     *
+     * The server is still asked first, every time: it owns the document number and the
+     * stock check, and a rejection is far more useful now than in an hour. Only a
+     * connectivity failure is queued; a 422 comes back to these fields.
      */
     fun submit() {
         val current = _form.value
@@ -266,8 +288,15 @@ abstract class DocumentFormViewModel(
                     notes = current.notes.trim().ifBlank { null },
                     lines = lines,
                 )
-            }.onSuccess { warnings ->
-                _form.update { it.copy(submitting = false, saved = true, warnings = warnings) }
+            }.onSuccess { outcome ->
+                _form.update {
+                    it.copy(
+                        submitting = false,
+                        saved = true,
+                        warnings = outcome.warnings,
+                        queued = outcome.queued,
+                    )
+                }
             }.onFailure { cause ->
                 val fields = fieldErrorsOf(cause, gson)
                 _form.update {
@@ -376,7 +405,7 @@ class SalesInvoiceFormViewModel @Inject constructor(
         discountPaise: Long,
         notes: String?,
         lines: List<NewDocumentLine>,
-    ): List<String> {
+    ): SaveOutcome {
         val body = NewSalesInvoice(
             partyId = partyId,
             plantId = plantId,
@@ -386,11 +415,13 @@ class SalesInvoiceFormViewModel @Inject constructor(
             lines = lines,
         )
 
-        return if (id == null) {
-            invoices.createOnServer(body).warnings
+        val saved = if (id == null) {
+            invoices.createOnServer(body)
         } else {
-            invoices.updateOnServer(id, body).warnings
+            invoices.updateOnServer(id, body)
         }
+
+        return SaveOutcome(saved.warnings, saved.queued)
     }
 }
 
@@ -445,7 +476,7 @@ class PurchaseBillFormViewModel @Inject constructor(
         discountPaise: Long,
         notes: String?,
         lines: List<NewDocumentLine>,
-    ): List<String> {
+    ): SaveOutcome {
         val body = NewPurchaseBill(
             partyId = partyId,
             plantId = plantId,
@@ -455,11 +486,13 @@ class PurchaseBillFormViewModel @Inject constructor(
             lines = lines,
         )
 
-        return if (id == null) {
-            bills.createOnServer(body).warnings
+        val saved = if (id == null) {
+            bills.createOnServer(body)
         } else {
-            bills.updateOnServer(id, body).warnings
+            bills.updateOnServer(id, body)
         }
+
+        return SaveOutcome(saved.warnings, saved.queued)
     }
 }
 
@@ -491,10 +524,12 @@ private fun DocumentFormBody(
     val subtotal by viewModel.subtotal.collectAsStateWithLifecycle()
     val total by viewModel.total.collectAsStateWithLifecycle()
 
-    // A clean save returns straight to the list. One that carried warnings stays put
-    // until they have been read — the document is saved either way.
-    LaunchedEffect(form.saved, form.warnings) {
-        if (form.saved && form.warnings.isEmpty()) {
+    // A clean save returns straight to the list. One that carried warnings, or that was
+    // queued rather than sent, stays put until that has been read — the document is
+    // recorded either way, but "recorded here" and "recorded on the server" are not the
+    // same thing and the difference is the user's to know.
+    LaunchedEffect(form.saved, form.warnings, form.queued) {
+        if (form.saved && form.warnings.isEmpty() && !form.queued) {
             navController.popBackStack()
         }
     }
@@ -513,6 +548,10 @@ private fun DocumentFormBody(
         message = form.message,
         onSave = viewModel::submit,
         banner = {
+            QueuedBanner(
+                queued = form.queued,
+                onDismiss = { navController.popBackStack() },
+            )
             WarningBanner(
                 warnings = form.warnings,
                 onDismiss = { navController.popBackStack() },

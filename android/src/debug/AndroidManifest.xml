@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug builds talk to a local Symfony over plain HTTP at 10.0.2.2:8000, which has no
+  certificate to present. The permission is confined to this variant on purpose: the
+  release manifest never sees it, so the shipped app still cannot be talked into
+  sending a JWT unencrypted.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:usesCleartextTraffic="true" />
+
+</manifest>

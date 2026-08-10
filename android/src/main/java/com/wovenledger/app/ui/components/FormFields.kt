@@ -255,6 +255,42 @@ fun FormScaffold(
 }
 
 /**
+ * Says that a save was written down here rather than sent.
+ *
+ * The record exists and will upload by itself, but two things about it are not true
+ * yet and saying so is the honest part: it has no document number, because only the
+ * server issues those, and nothing has checked it against stock, because stock is the
+ * server's figure too. Quietly returning to the list as though this were an ordinary
+ * save would leave the user to discover both later.
+ */
+@Composable
+fun QueuedBanner(queued: Boolean, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    if (!queued) {
+        return
+    }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Saved on this phone",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Text(
+                text = "There was no connection, so it is waiting to upload. " +
+                    "It gets its number, and its stock check, when it reaches the server.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            TextButton(onClick = onDismiss) { Text("Done") }
+        }
+    }
+}
+
+/**
  * What the server warned about while saving successfully.
  *
  * Stock shortfalls are warnings, never errors — the portal lets a sale go through

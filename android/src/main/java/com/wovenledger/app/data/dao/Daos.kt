@@ -59,13 +59,30 @@ interface PartyDao {
      *
      * Sync was upsert-only, so anything deleted on the portal stayed on the phone
      * for good. An empty list means the server has none of these at all, which
-     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     * SQLite cannot express as `NOT IN ()` — [deleteSynced] covers that case.
+     *
+     * `id >= 0` is the guard that stops pruning from eating unsent work: a queued
+     * row carries a negative id and the server has never been told it exists, so it
+     * is missing from every list the server sends. Deleting it here would silently
+     * destroy what the user typed while offline.
      */
-    @Query("DELETE FROM parties WHERE id NOT IN (:keep)")
+    @Query("DELETE FROM parties WHERE id NOT IN (:keep) AND id >= 0")
     suspend fun deleteMissing(keep: List<Long>)
 
-    @Query("DELETE FROM parties")
-    suspend fun deleteAll()
+    /** Clears everything the server owns, leaving queued rows alone. */
+    @Query("DELETE FROM parties WHERE id >= 0")
+    suspend fun deleteSynced()
+
+    /** Ids of rows written on this phone and not uploaded yet. */
+    @Query("SELECT id FROM parties WHERE id < 0")
+    suspend fun pendingIds(): List<Long>
+
+    /** The lowest id in the table, which is how the next local id is chosen. */
+    @Query("SELECT MIN(id) FROM parties")
+    suspend fun minId(): Long?
+
+    @Query("DELETE FROM parties WHERE id = :id")
+    suspend fun deleteById(id: Long)
 
     @Query("SELECT DISTINCT party_id FROM (SELECT party_id FROM sales_invoices UNION SELECT party_id FROM purchase_bills UNION SELECT party_id FROM receipts UNION SELECT party_id FROM payments)")
     suspend fun findIdsWithTransactions(): List<Int>
@@ -96,13 +113,16 @@ interface ItemDao {
      *
      * Sync was upsert-only, so anything deleted on the portal stayed on the phone
      * for good. An empty list means the server has none of these at all, which
-     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     * SQLite cannot express as `NOT IN ()` — [deleteSynced] covers that case.
+     *
+     * Items are read-only on mobile so none of them is ever queued, but the `id >= 0`
+     * guard is stated here too: the rule is a property of pruning, not of one table.
      */
-    @Query("DELETE FROM items WHERE id NOT IN (:keep)")
+    @Query("DELETE FROM items WHERE id NOT IN (:keep) AND id >= 0")
     suspend fun deleteMissing(keep: List<Long>)
 
-    @Query("DELETE FROM items")
-    suspend fun deleteAll()
+    @Query("DELETE FROM items WHERE id >= 0")
+    suspend fun deleteSynced()
 
     @Query("SELECT * FROM items WHERE id = :id")
     fun getItem(id: Long): Flow<Item?>
@@ -148,13 +168,16 @@ interface StaffDao {
      *
      * Sync was upsert-only, so anything deleted on the portal stayed on the phone
      * for good. An empty list means the server has none of these at all, which
-     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     * SQLite cannot express as `NOT IN ()` — [deleteSynced] covers that case.
+     *
+     * Staff are read-only on mobile, but pruning keeps the same `id >= 0` guard as
+     * every other table so the rule cannot be read as optional.
      */
-    @Query("DELETE FROM staff WHERE id NOT IN (:keep)")
+    @Query("DELETE FROM staff WHERE id NOT IN (:keep) AND id >= 0")
     suspend fun deleteMissing(keep: List<Long>)
 
-    @Query("DELETE FROM staff")
-    suspend fun deleteAll()
+    @Query("DELETE FROM staff WHERE id >= 0")
+    suspend fun deleteSynced()
 
     @Query("SELECT * FROM staff WHERE id = :id")
     fun getStaff(id: Long): Flow<Staff?>
@@ -185,13 +208,26 @@ interface StaffWorkDao {
      *
      * Sync was upsert-only, so anything deleted on the portal stayed on the phone
      * for good. An empty list means the server has none of these at all, which
-     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     * SQLite cannot express as `NOT IN ()` — [deleteSynced] covers that case.
+     *
+     * `id >= 0` keeps a work entry recorded on the shop floor with no signal out of
+     * the pruning: the server has never heard of it, so it is missing from every list.
      */
-    @Query("DELETE FROM staff_work WHERE id NOT IN (:keep)")
+    @Query("DELETE FROM staff_work WHERE id NOT IN (:keep) AND id >= 0")
     suspend fun deleteMissing(keep: List<Long>)
 
-    @Query("DELETE FROM staff_work")
-    suspend fun deleteAll()
+    @Query("DELETE FROM staff_work WHERE id >= 0")
+    suspend fun deleteSynced()
+
+    /** Ids of rows written on this phone and not uploaded yet. */
+    @Query("SELECT id FROM staff_work WHERE id < 0")
+    suspend fun pendingIds(): List<Long>
+
+    @Query("SELECT MIN(id) FROM staff_work")
+    suspend fun minId(): Long?
+
+    @Query("DELETE FROM staff_work WHERE id = :id")
+    suspend fun deleteById(id: Long)
 
     @Query("SELECT * FROM staff_work WHERE id = :id")
     fun getWork(id: Long): Flow<StaffWork?>
@@ -237,13 +273,28 @@ interface SalesInvoiceDao {
      *
      * Sync was upsert-only, so anything deleted on the portal stayed on the phone
      * for good. An empty list means the server has none of these at all, which
-     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     * SQLite cannot express as `NOT IN ()` — [deleteSynced] covers that case.
+     *
+     * `id >= 0` is what stops a queued invoice being pruned. A document written with
+     * no signal has a negative id and no document number yet, and it is absent from
+     * every list the server sends — so without this guard the next sync would delete
+     * the sale before it was ever uploaded.
      */
-    @Query("DELETE FROM sales_invoices WHERE id NOT IN (:keep)")
+    @Query("DELETE FROM sales_invoices WHERE id NOT IN (:keep) AND id >= 0")
     suspend fun deleteMissing(keep: List<Long>)
 
-    @Query("DELETE FROM sales_invoices")
-    suspend fun deleteAll()
+    @Query("DELETE FROM sales_invoices WHERE id >= 0")
+    suspend fun deleteSynced()
+
+    /** Ids of invoices raised on this phone and not uploaded yet. */
+    @Query("SELECT id FROM sales_invoices WHERE id < 0")
+    suspend fun pendingIds(): List<Long>
+
+    @Query("SELECT MIN(id) FROM sales_invoices")
+    suspend fun minId(): Long?
+
+    @Query("DELETE FROM sales_invoices WHERE id = :id")
+    suspend fun deleteById(id: Long)
 
     @Query("SELECT SUM(total) FROM sales_invoices")
     suspend fun sumTotal(): Long
@@ -276,6 +327,10 @@ interface SalesInvoiceLineDao {
     @Query("DELETE FROM sales_invoice_lines WHERE invoice_id = :invoiceId")
     suspend fun deleteForInvoice(invoiceId: Long)
 
+    /** The lowest line id, so the lines of a queued invoice can be numbered negatively too. */
+    @Query("SELECT MIN(id) FROM sales_invoice_lines")
+    suspend fun minId(): Long?
+
     @Delete
     suspend fun delete(line: SalesInvoiceLine)
 }
@@ -299,13 +354,26 @@ interface PurchaseBillDao {
      *
      * Sync was upsert-only, so anything deleted on the portal stayed on the phone
      * for good. An empty list means the server has none of these at all, which
-     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     * SQLite cannot express as `NOT IN ()` — [deleteSynced] covers that case.
+     *
+     * `id >= 0` keeps a bill booked with no signal out of the pruning; see
+     * [SalesInvoiceDao.deleteMissing].
      */
-    @Query("DELETE FROM purchase_bills WHERE id NOT IN (:keep)")
+    @Query("DELETE FROM purchase_bills WHERE id NOT IN (:keep) AND id >= 0")
     suspend fun deleteMissing(keep: List<Long>)
 
-    @Query("DELETE FROM purchase_bills")
-    suspend fun deleteAll()
+    @Query("DELETE FROM purchase_bills WHERE id >= 0")
+    suspend fun deleteSynced()
+
+    /** Ids of bills booked on this phone and not uploaded yet. */
+    @Query("SELECT id FROM purchase_bills WHERE id < 0")
+    suspend fun pendingIds(): List<Long>
+
+    @Query("SELECT MIN(id) FROM purchase_bills")
+    suspend fun minId(): Long?
+
+    @Query("DELETE FROM purchase_bills WHERE id = :id")
+    suspend fun deleteById(id: Long)
 
     @Query("SELECT SUM(total) FROM purchase_bills")
     suspend fun sumTotal(): Long
@@ -338,6 +406,10 @@ interface PurchaseBillLineDao {
     @Query("DELETE FROM purchase_bill_lines WHERE bill_id = :billId")
     suspend fun deleteForBill(billId: Long)
 
+    /** The lowest line id, so the lines of a queued bill can be numbered negatively too. */
+    @Query("SELECT MIN(id) FROM purchase_bill_lines")
+    suspend fun minId(): Long?
+
     @Delete
     suspend fun delete(line: PurchaseBillLine)
 }
@@ -361,13 +433,26 @@ interface ReceiptDao {
      *
      * Sync was upsert-only, so anything deleted on the portal stayed on the phone
      * for good. An empty list means the server has none of these at all, which
-     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     * SQLite cannot express as `NOT IN ()` — [deleteSynced] covers that case.
+     *
+     * `id >= 0` keeps a receipt written with no signal out of the pruning; see
+     * [SalesInvoiceDao.deleteMissing].
      */
-    @Query("DELETE FROM receipts WHERE id NOT IN (:keep)")
+    @Query("DELETE FROM receipts WHERE id NOT IN (:keep) AND id >= 0")
     suspend fun deleteMissing(keep: List<Long>)
 
-    @Query("DELETE FROM receipts")
-    suspend fun deleteAll()
+    @Query("DELETE FROM receipts WHERE id >= 0")
+    suspend fun deleteSynced()
+
+    /** Ids of receipts written on this phone and not uploaded yet. */
+    @Query("SELECT id FROM receipts WHERE id < 0")
+    suspend fun pendingIds(): List<Long>
+
+    @Query("SELECT MIN(id) FROM receipts")
+    suspend fun minId(): Long?
+
+    @Query("DELETE FROM receipts WHERE id = :id")
+    suspend fun deleteById(id: Long)
 
     @Query("SELECT SUM(amount) FROM receipts")
     suspend fun sumAmount(): Long
@@ -407,13 +492,26 @@ interface PaymentDao {
      *
      * Sync was upsert-only, so anything deleted on the portal stayed on the phone
      * for good. An empty list means the server has none of these at all, which
-     * SQLite cannot express as `NOT IN ()` — [deleteAll] covers that case.
+     * SQLite cannot express as `NOT IN ()` — [deleteSynced] covers that case.
+     *
+     * `id >= 0` keeps a voucher written with no signal out of the pruning; see
+     * [SalesInvoiceDao.deleteMissing].
      */
-    @Query("DELETE FROM payments WHERE id NOT IN (:keep)")
+    @Query("DELETE FROM payments WHERE id NOT IN (:keep) AND id >= 0")
     suspend fun deleteMissing(keep: List<Long>)
 
-    @Query("DELETE FROM payments")
-    suspend fun deleteAll()
+    @Query("DELETE FROM payments WHERE id >= 0")
+    suspend fun deleteSynced()
+
+    /** Ids of vouchers written on this phone and not uploaded yet. */
+    @Query("SELECT id FROM payments WHERE id < 0")
+    suspend fun pendingIds(): List<Long>
+
+    @Query("SELECT MIN(id) FROM payments")
+    suspend fun minId(): Long?
+
+    @Query("DELETE FROM payments WHERE id = :id")
+    suspend fun deleteById(id: Long)
 
     @Query("SELECT SUM(amount) FROM payments")
     suspend fun sumAmount(): Long

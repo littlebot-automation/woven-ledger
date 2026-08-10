@@ -21,6 +21,7 @@ import com.wovenledger.app.data.repository.PartyRepository
 import com.wovenledger.app.ui.components.FormScaffold
 import com.wovenledger.app.ui.components.MoneyField
 import com.wovenledger.app.ui.components.PickerField
+import com.wovenledger.app.ui.components.QueuedBanner
 import com.wovenledger.app.ui.components.failureMessage
 import com.wovenledger.app.ui.components.fieldErrorsOf
 import com.wovenledger.app.ui.components.paiseToTyped
@@ -53,6 +54,8 @@ data class PartyForm(
     val errors: Map<String, String> = emptyMap(),
     val message: String? = null,
     val saved: Boolean = false,
+    /** Saved on this phone only, waiting for a connection. */
+    val queued: Boolean = false,
 )
 
 /** The wire values for Party::TYPES, paired with what the form shows. */
@@ -120,7 +123,13 @@ class PartyFormViewModel @Inject constructor(
 
     fun onOpeningTypeChange(value: BalanceType) = _form.update { it.copy(openingType = value) }
 
-    /** Posts and waits: there is no queue, so a failure means nothing was saved. */
+    /**
+     * Posts and waits — and queues the party if there is no connection.
+     *
+     * A queued party is visible in the parties list straight away, marked as pending,
+     * but the document forms do not offer it until it has uploaded and has a real id:
+     * an invoice carrying its negative local id would mean nothing to the server.
+     */
     fun submit() {
         val current = _form.value
         val local = validate(current)
@@ -150,8 +159,8 @@ class PartyFormViewModel @Inject constructor(
                 } else {
                     parties.updateOnServer(partyId, body)
                 }
-            }.onSuccess {
-                _form.update { it.copy(submitting = false, saved = true) }
+            }.onSuccess { saved ->
+                _form.update { it.copy(submitting = false, saved = true, queued = saved.queued) }
             }.onFailure { cause ->
                 val fields = fieldErrorsOf(cause, gson)
                 _form.update {
@@ -180,9 +189,10 @@ fun PartyFormScreen(navController: NavHostController) {
     val form by viewModel.form.collectAsStateWithLifecycle()
 
     // The list behind this screen observes Room, and the save already wrote there,
-    // so returning is all that is left to do.
-    LaunchedEffect(form.saved) {
-        if (form.saved) {
+    // so returning is all that is left to do — unless the save was queued, which the
+    // user is told about before leaving.
+    LaunchedEffect(form.saved, form.queued) {
+        if (form.saved && !form.queued) {
             navController.popBackStack()
         }
     }
@@ -192,6 +202,9 @@ fun PartyFormScreen(navController: NavHostController) {
         saveLabel = if (viewModel.editing) "Save changes" else "Add party",
         message = form.message,
         onSave = viewModel::submit,
+        banner = {
+            QueuedBanner(queued = form.queued, onDismiss = { navController.popBackStack() })
+        },
     ) {
         OutlinedTextField(
             value = form.name,

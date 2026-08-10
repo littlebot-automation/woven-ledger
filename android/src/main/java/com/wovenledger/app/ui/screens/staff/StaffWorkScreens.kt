@@ -50,6 +50,7 @@ import com.wovenledger.app.ui.components.EmptyState
 import com.wovenledger.app.ui.components.FormScaffold
 import com.wovenledger.app.ui.components.MoneyField
 import com.wovenledger.app.ui.components.PickerField
+import com.wovenledger.app.ui.components.QueuedBanner
 import com.wovenledger.app.ui.components.failureMessage
 import com.wovenledger.app.ui.components.fieldErrorsOf
 import com.wovenledger.app.ui.components.paiseToTyped
@@ -203,6 +204,8 @@ data class StaffWorkForm(
     val errors: Map<String, String> = emptyMap(),
     val message: String? = null,
     val saved: Boolean = false,
+    /** Saved on this phone only, waiting for a connection. */
+    val queued: Boolean = false,
 )
 
 @HiltViewModel
@@ -273,9 +276,11 @@ class StaffWorkFormViewModel @Inject constructor(
     fun onRateChange(value: String) = _form.update { it.copy(rate = value, errors = it.errors - "rate") }
 
     /**
-     * Writes are online-only by design: this waits for the server rather than queueing,
-     * and surfaces the server's own field errors on a 422 — including its refusal to
-     * touch an entry a wage voucher has already settled.
+     * Waits for the server, and writes the entry down here if there is no connection.
+     *
+     * The server's own field errors still surface on a 422 — including its refusal to
+     * touch an entry a wage voucher has already settled — because a refusal is a
+     * decision, not a connection problem, and queueing it would retry it forever.
      */
     fun submit() {
         val current = _form.value
@@ -305,8 +310,8 @@ class StaffWorkFormViewModel @Inject constructor(
                 } else {
                     staffWork.updateOnServer(workId, body)
                 }
-            }.onSuccess {
-                _form.update { it.copy(submitting = false, saved = true) }
+            }.onSuccess { saved ->
+                _form.update { it.copy(submitting = false, saved = true, queued = saved.queued) }
             }.onFailure { cause ->
                 val fields = fieldErrorsOf(cause, gson)
                 _form.update {
@@ -344,9 +349,10 @@ fun StaffWorkFormScreen(navController: NavHostController) {
     val plants by viewModel.plants.collectAsStateWithLifecycle()
     val amount by viewModel.amount.collectAsStateWithLifecycle()
 
-    // The list behind this screen refreshes from the next sync, so saving just returns.
-    LaunchedEffect(form.saved) {
-        if (form.saved) {
+    // The list behind this screen refreshes from the next sync, so saving just returns —
+    // unless the entry was queued, which the user is told about before leaving.
+    LaunchedEffect(form.saved, form.queued) {
+        if (form.saved && !form.queued) {
             navController.popBackStack()
         }
     }
@@ -356,6 +362,9 @@ fun StaffWorkFormScreen(navController: NavHostController) {
         saveLabel = if (viewModel.editing) "Save work entry" else "Add work entry",
         message = form.message,
         onSave = viewModel::submit,
+        banner = {
+            QueuedBanner(queued = form.queued, onDismiss = { navController.popBackStack() })
+        },
     ) {
         DateField(
             date = form.date,

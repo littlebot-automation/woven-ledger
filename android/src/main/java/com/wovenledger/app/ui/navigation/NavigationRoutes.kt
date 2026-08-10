@@ -10,6 +10,9 @@ object NavigationRoutes {
     // Everything the four bottom-bar destinations don't cover
     const val MORE = "more"
 
+    // What has been written on this phone and not reached the server yet
+    const val PENDING_UPLOADS = "pending_uploads"
+
     // Parties (Customers/Suppliers)
     const val PARTIES_LIST = "parties_list"
     const val PARTY_DETAIL = "party_detail/{partyId}"

@@ -7,6 +7,11 @@ import com.wovenledger.app.data.dao.StaffDao
 import com.wovenledger.app.data.dao.StaffWorkDao
 import com.wovenledger.app.data.entities.Plant
 import com.wovenledger.app.data.entities.StaffWork
+import com.wovenledger.app.data.outbox.Outbox
+import com.wovenledger.app.data.outbox.OutboxOperation
+import com.wovenledger.app.data.outbox.OutboxTarget
+import com.wovenledger.app.data.outbox.attemptOnline
+import com.wovenledger.app.data.outbox.nextLocalId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -23,7 +28,8 @@ class StaffWorkRepository @Inject constructor(
     private val dao: StaffWorkDao,
     private val staffDao: StaffDao,
     private val api: LabourApiService,
-    private val plants: PlantRepository
+    private val plants: PlantRepository,
+    private val outbox: Outbox
 ) {
 
     suspend fun create(work: StaffWork): Long = dao.insert(work)
@@ -67,22 +73,108 @@ class StaffWorkRepository @Inject constructor(
     fun findRecent(): Flow<List<StaffWork>> = dao.getUnpaidWork()
 
     /**
-     * Records a day's work on the server and mirrors the created row into Room.
+     * Records a day's work on the server and mirrors the created row into Room;
+     * queues it if the phone cannot reach the server.
      *
-     * Writes are online-only by design, so this suspends until the server answers and
-     * throws — including [retrofit2.HttpException] on a 422 — rather than queueing.
-     * The caller reads the field errors off the 422 body.
+     * This is the write most likely to happen with no signal — it is made on the shop
+     * floor, at the loom, at the end of a shift — so being refused for want of a
+     * connection was the least useful thing it could do. A 422 still surfaces
+     * immediately; only a connectivity failure is queued.
      */
-    suspend fun createOnServer(entry: NewStaffWork): StaffWork = store(api.createStaffWork(entry))
+    suspend fun createOnServer(entry: NewStaffWork): SavedDocument<StaffWork> {
+        val dto = attemptOnline { api.createStaffWork(entry) } ?: return queueCreate(entry)
+
+        return SavedDocument(store(dto))
+    }
 
     /**
      * Corrects an entry the server still lets us touch.
      *
      * A settled entry comes back as a 422 keyed `paid`, because its amount is
-     * already inside a wage voucher that would otherwise disagree with it.
+     * already inside a wage voucher that would otherwise disagree with it. That
+     * refusal is a decision, not a connection problem, so it is never queued — the
+     * queue would retry it forever while telling the user the correction was saved.
      */
-    suspend fun updateOnServer(id: Long, entry: NewStaffWork): StaffWork =
-        store(api.updateStaffWork(id.toInt(), entry))
+    suspend fun updateOnServer(id: Long, entry: NewStaffWork): SavedDocument<StaffWork> {
+        // A document that has not uploaded has no server id to PUT to: editing it
+        // rewrites the write already queued for it instead of asking the server about
+        // a record it has never seen.
+        if (id < 0) {
+            return queueUpdate(id, entry)
+        }
+
+        val dto = attemptOnline { api.updateStaffWork(id.toInt(), entry) }
+            ?: return queueUpdate(id, entry)
+
+        return SavedDocument(store(dto))
+    }
+
+    private suspend fun queueCreate(body: NewStaffWork): SavedDocument<StaffWork> {
+        val localId = nextLocalId(dao.minId())
+        val echo = echoOf(localId, body)
+
+        ensurePlant(echo.plantId)
+        dao.insert(echo)
+        outbox.enqueue(OutboxTarget.STAFF_WORK, OutboxOperation.CREATE, localId, body)
+
+        return SavedDocument(echo, queued = true)
+    }
+
+    private suspend fun queueUpdate(id: Long, body: NewStaffWork): SavedDocument<StaffWork> {
+        // Whether the entry is settled, and which voucher settled it, are the server's
+        // to say; an offline correction must not claim either way.
+        val stored = dao.getWork(id).first()
+        val edited = echoOf(id, body).copy(
+            paid = stored?.paid ?: false,
+            paymentVoucherId = stored?.paymentVoucherId,
+        )
+
+        ensurePlant(edited.plantId)
+        dao.insert(edited)
+        outbox.enqueue(OutboxTarget.STAFF_WORK, OutboxOperation.UPDATE, id, body)
+
+        return SavedDocument(edited, queued = true)
+    }
+
+    /**
+     * Removes a locally written work entry that is never going to be uploaded.
+     *
+     * Only the outbox calls this, when the user abandons a queued write.
+     */
+    suspend fun deleteLocal(localId: Long) = dao.deleteById(localId)
+
+    /** Sends a queued create, then swaps the local echo for what the server stored. */
+    suspend fun uploadCreate(localId: Long, body: NewStaffWork): List<String> {
+        val dto = api.createStaffWork(body)
+
+        dao.deleteById(localId)
+        store(dto)
+
+        return emptyList()
+    }
+
+    suspend fun uploadUpdate(id: Long, body: NewStaffWork): List<String> {
+        store(api.updateStaffWork(id.toInt(), body))
+
+        return emptyList()
+    }
+
+    /**
+     * What a queued work entry looks like in the app while it waits.
+     *
+     * A blank rate means "use the staff member's own", which only the server can
+     * resolve, so it shows as zero here and corrects itself on upload.
+     */
+    private fun echoOf(id: Long, body: NewStaffWork) = StaffWork(
+        id = id,
+        date = LocalDate.parse(body.date),
+        staffId = body.staffId.toLong(),
+        plantId = body.plantId?.toLong() ?: DEFAULT_PLANT_ID,
+        workType = body.workType,
+        qty = body.qty,
+        rate = body.rate ?: 0L,
+        paid = false,
+    )
 
     private suspend fun store(dto: StaffWorkDto): StaffWork {
         val work = toEntity(dto)
@@ -116,8 +208,12 @@ class StaffWorkRepository @Inject constructor(
         // Upserting alone left entries deleted on the portal on the phone for good —
         // the symptom that started this: a work row removed on the server stayed
         // visible in the app until the database was wiped.
-        val ids = dtos.map { it.id.toLong() }
-        if (ids.isEmpty()) dao.deleteAll() else dao.deleteMissing(ids)
+        //
+        // Entries recorded here and not uploaded yet are kept: they are missing from
+        // the server's list because it has never been told about them, and pruning
+        // them would throw away a shift nobody else has a record of.
+        val keep = dtos.map { it.id.toLong() } + dao.pendingIds()
+        if (keep.isEmpty()) dao.deleteSynced() else dao.deleteMissing(keep)
     }
 
     /**

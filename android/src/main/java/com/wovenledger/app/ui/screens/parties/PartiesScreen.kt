@@ -49,6 +49,7 @@ import com.wovenledger.app.data.repository.PurchaseBillRepository
 import com.wovenledger.app.data.repository.SalesInvoiceRepository
 import com.wovenledger.app.ui.components.DocumentNumberText
 import com.wovenledger.app.ui.components.EmptyState
+import com.wovenledger.app.ui.components.PendingBadge
 import com.wovenledger.app.ui.components.MoneyTone
 import com.wovenledger.app.ui.components.MoneyText
 import com.wovenledger.app.ui.components.formatDate
@@ -193,6 +194,12 @@ private fun PartyRow(party: Party, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // A party added with no signal has only a local id, so the document
+                // forms cannot use it yet. Saying so here explains why it is missing
+                // from the pickers.
+                if (party.id < 0) {
+                    PendingBadge(modifier = Modifier.padding(top = 4.dp))
+                }
             }
             // The running balance, not the opening one: what they owe today.
             val receivable = party.ledgerBalance >= 0

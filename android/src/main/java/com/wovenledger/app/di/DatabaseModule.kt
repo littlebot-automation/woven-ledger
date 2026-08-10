@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import com.wovenledger.app.data.database.WovenLedgerDatabase
 import com.wovenledger.app.data.dao.*
+import com.wovenledger.app.data.auth.AuthTokenDao
+import com.wovenledger.app.data.outbox.OutboxDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -78,4 +80,12 @@ object DatabaseModule {
     @Singleton
     @Provides
     fun providePaymentDao(database: WovenLedgerDatabase): PaymentDao = database.paymentDao()
+
+    @Singleton
+    @Provides
+    fun provideOutboxDao(database: WovenLedgerDatabase): OutboxDao = database.outboxDao()
+
+    @Singleton
+    @Provides
+    fun provideAuthTokenDao(database: WovenLedgerDatabase): AuthTokenDao = database.authTokenDao()
 }

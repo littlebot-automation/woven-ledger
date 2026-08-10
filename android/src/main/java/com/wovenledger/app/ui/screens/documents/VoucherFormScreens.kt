@@ -29,6 +29,7 @@ import com.wovenledger.app.ui.components.DateField
 import com.wovenledger.app.ui.components.FormScaffold
 import com.wovenledger.app.ui.components.MoneyField
 import com.wovenledger.app.ui.components.PickerField
+import com.wovenledger.app.ui.components.QueuedBanner
 import com.wovenledger.app.ui.components.failureMessage
 import com.wovenledger.app.ui.components.fieldErrorsOf
 import com.wovenledger.app.ui.components.paiseToTyped
@@ -73,6 +74,8 @@ data class ReceiptForm(
     val errors: Map<String, String> = emptyMap(),
     val message: String? = null,
     val saved: Boolean = false,
+    /** Saved on this phone only, waiting for a connection — and so without a number. */
+    val queued: Boolean = false,
 )
 
 @HiltViewModel
@@ -90,7 +93,11 @@ class ReceiptFormViewModel @Inject constructor(
     private val _form = MutableStateFlow(ReceiptForm())
     val form: StateFlow<ReceiptForm> = _form.asStateFlow()
 
-    val parties: StateFlow<List<Party>> = parties.getAll()
+    /**
+     * Only parties the server knows about: a receipt against a party that has not
+     * uploaded yet would carry a negative local id the server cannot resolve.
+     */
+    val parties: StateFlow<List<Party>> = parties.getPostable()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
@@ -156,8 +163,8 @@ class ReceiptFormViewModel @Inject constructor(
                 } else {
                     receipts.updateOnServer(receiptId, body)
                 }
-            }.onSuccess {
-                _form.update { it.copy(submitting = false, saved = true) }
+            }.onSuccess { saved ->
+                _form.update { it.copy(submitting = false, saved = true, queued = saved.queued) }
             }.onFailure { cause ->
                 val fields = fieldErrorsOf(cause, gson)
                 _form.update {
@@ -178,8 +185,8 @@ fun ReceiptFormScreen(navController: NavHostController) {
     val form by viewModel.form.collectAsStateWithLifecycle()
     val parties by viewModel.parties.collectAsStateWithLifecycle()
 
-    LaunchedEffect(form.saved) {
-        if (form.saved) {
+    LaunchedEffect(form.saved, form.queued) {
+        if (form.saved && !form.queued) {
             navController.popBackStack()
         }
     }
@@ -189,6 +196,9 @@ fun ReceiptFormScreen(navController: NavHostController) {
         saveLabel = if (viewModel.editing) "Save receipt" else "Record receipt",
         message = form.message,
         onSave = viewModel::submit,
+        banner = {
+            QueuedBanner(queued = form.queued, onDismiss = { navController.popBackStack() })
+        },
     ) {
         DateField(
             date = form.date,
@@ -245,6 +255,8 @@ data class PaymentForm(
     val errors: Map<String, String> = emptyMap(),
     val message: String? = null,
     val saved: Boolean = false,
+    /** Saved on this phone only, waiting for a connection — and so without a number. */
+    val queued: Boolean = false,
 )
 
 private val PAYMENT_TYPES = listOf(
@@ -268,7 +280,11 @@ class PaymentFormViewModel @Inject constructor(
     private val _form = MutableStateFlow(PaymentForm())
     val form: StateFlow<PaymentForm> = _form.asStateFlow()
 
-    val parties: StateFlow<List<Party>> = parties.getAll()
+    /**
+     * Only parties the server knows about: a receipt against a party that has not
+     * uploaded yet would carry a negative local id the server cannot resolve.
+     */
+    val parties: StateFlow<List<Party>> = parties.getPostable()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val staff: StateFlow<List<Staff>> = staff.getAll()
@@ -358,8 +374,8 @@ class PaymentFormViewModel @Inject constructor(
                 } else {
                     payments.updateOnServer(paymentId, body)
                 }
-            }.onSuccess {
-                _form.update { it.copy(submitting = false, saved = true) }
+            }.onSuccess { saved ->
+                _form.update { it.copy(submitting = false, saved = true, queued = saved.queued) }
             }.onFailure { cause ->
                 val fields = fieldErrorsOf(cause, gson)
                 _form.update {
@@ -381,8 +397,8 @@ fun PaymentFormScreen(navController: NavHostController) {
     val parties by viewModel.parties.collectAsStateWithLifecycle()
     val staff by viewModel.staff.collectAsStateWithLifecycle()
 
-    LaunchedEffect(form.saved) {
-        if (form.saved) {
+    LaunchedEffect(form.saved, form.queued) {
+        if (form.saved && !form.queued) {
             navController.popBackStack()
         }
     }
@@ -392,6 +408,9 @@ fun PaymentFormScreen(navController: NavHostController) {
         saveLabel = if (viewModel.editing) "Save payment" else "Record payment",
         message = form.message,
         onSave = viewModel::submit,
+        banner = {
+            QueuedBanner(queued = form.queued, onDismiss = { navController.popBackStack() })
+        },
     ) {
         DateField(
             date = form.date,

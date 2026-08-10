@@ -3,6 +3,7 @@ package com.wovenledger.app.data.repository
 import com.wovenledger.app.data.api.DocumentLineDto
 import com.wovenledger.app.data.api.SalesInvoiceDto
 import com.wovenledger.app.data.api.WovenLedgerApiService
+import com.wovenledger.app.data.outbox.Outbox
 import com.wovenledger.app.data.dao.SalesInvoiceDao
 import com.wovenledger.app.data.dao.SalesInvoiceLineDao
 import com.wovenledger.app.data.entities.SalesInvoice
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
@@ -34,8 +36,20 @@ class SalesInvoiceRepositoryTest {
     private val dao: SalesInvoiceDao = mock()
     private val lineDao: SalesInvoiceLineDao = mock()
     private val api: WovenLedgerApiService = mock()
+    private val outbox: Outbox = mock()
     private val plants: PlantRepository = mock()
-    private val repository = SalesInvoiceRepository(dao, lineDao, api, plants)
+    private val repository = SalesInvoiceRepository(dao, lineDao, api, plants, outbox)
+
+    /**
+     * Room answers "no queued rows" with an empty list; an unstubbed Mockito suspend
+     * function answers with null. The pruning tests that matter — the ones proving a
+     * queued row survives a sync — stub this themselves.
+     */
+    @Before
+    fun noQueuedRowsByDefault() {
+        wheneverBlocking { dao.pendingIds() }.thenReturn(emptyList())
+    }
+
 
     @Test
     fun `the stored subtotal is the server total minus its GST`() = runTest {
@@ -188,7 +202,7 @@ class SalesInvoiceRepositoryTest {
 
         repository.syncFromApi()
 
-        verifyBlocking(dao) { deleteAll() }
+        verifyBlocking(dao) { deleteSynced() }
         verifyBlocking(dao, never()) { deleteMissing(any()) }
     }
 

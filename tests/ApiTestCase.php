@@ -22,9 +22,17 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * routing, JSON decoding and the paise boundary are exercised too — the layer the
  * phone actually talks to. The kernel is booted by createClient() rather than
  * bootKernel(), which is why this cannot simply extend DomainTestCase.
+ *
+ * /api is behind JWT, so setUp() logs in once and pins the bearer token to the
+ * client. Every subclass therefore keeps talking to the API exactly as before —
+ * the authentication is the base class's business, not each test's.
  */
 abstract class ApiTestCase extends WebTestCase
 {
+    /** The single in-memory API account declared in config/packages/security.yaml. */
+    protected const API_USERNAME = 'mobile';
+    protected const API_PASSWORD = 'wovenledger';
+
     protected KernelBrowser $client;
     protected EntityManagerInterface $em;
     protected Plant $plantA;
@@ -40,6 +48,7 @@ abstract class ApiTestCase extends WebTestCase
         // Without this the kernel is rebuilt per request, and the entity manager the
         // assertions hold would no longer be the one the controller wrote through.
         $this->client->disableReboot();
+        $this->authenticate();
         $this->em = static::getContainer()->get('doctrine.orm.default_entity_manager');
 
         // A fresh schema per test: these tests mutate stock and consume document
@@ -83,6 +92,53 @@ abstract class ApiTestCase extends WebTestCase
     {
         parent::tearDown();
         $this->em->close();
+    }
+
+    /**
+     * Trades the API credentials for a token and pins it to the client.
+     *
+     * The api firewall is stateless — there is no session to remember the login,
+     * so the bearer header has to ride along on every later request. Setting it on
+     * the client rather than inside send() is what keeps the subclasses unaware.
+     */
+    protected function authenticate(string $username = self::API_USERNAME, string $password = self::API_PASSWORD): string
+    {
+        $token = $this->requestToken($username, $password)['token'] ?? '';
+
+        $this->client->setServerParameter('HTTP_AUTHORIZATION', 'Bearer '.$token);
+
+        return (string) $token;
+    }
+
+    /**
+     * Drops the bearer header, leaving the client as an unauthenticated caller.
+     *
+     * BrowserKit has no way to unset one server parameter, and resetting them all
+     * is harmless here: the token is the only one setUp() puts there.
+     */
+    protected function forgetToken(): void
+    {
+        $this->client->setServerParameters([]);
+    }
+
+    /**
+     * The raw login exchange, without touching the client's headers.
+     *
+     * @return array<string, mixed> the decoded body — `token` on success, lexik's
+     *                              `code`/`message` pair on a rejected login
+     */
+    protected function requestToken(string $username, string $password): array
+    {
+        $this->client->request(
+            'POST',
+            '/api/login_check',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['username' => $username, 'password' => $password], \JSON_THROW_ON_ERROR),
+        );
+
+        $content = $this->client->getResponse()->getContent();
+
+        return json_decode((string) $content, true, flags: \JSON_THROW_ON_ERROR);
     }
 
     /**

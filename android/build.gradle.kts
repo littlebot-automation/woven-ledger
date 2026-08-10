@@ -64,10 +64,18 @@ android {
             if (signing.getProperty("storeFile") != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
+
+            buildConfigField("String", "API_BASE_URL", "\"https://invoice.littlebotautomation.com/\"")
         }
         debug {
             isMinifyEnabled = false
             isShrinkResources = false
+
+            // 10.0.2.2 is the emulator's route to the host machine's loopback, so a
+            // Symfony dev server on :8000 is reachable without touching the release
+            // build. It speaks plain HTTP, which is why src/debug carries a manifest
+            // permitting cleartext — a permission the release build never gets.
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
         }
     }
 

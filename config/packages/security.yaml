@@ -1,17 +1,53 @@
 # The original portal has no authentication layer — it is a single-tenant local app.
 # The replica keeps that behaviour: one anonymous firewall, everything public.
+#
+# The JSON API is the exception. It is reached over the network by the phone, so it
+# is closed off behind a JWT the app trades its credentials for. That login is a
+# separate, stateless firewall matched before `main`, and it draws on its own
+# provider — the portal's own firewall is deliberately left untouched.
 security:
+    # The API account is a single fixed login rather than a table: there is one
+    # phone, and a user entity would be a schema and a migration for one row.
+    # The identifier has to be written out literally, because Symfony resolves
+    # %env()% in values only — never in a YAML key.
+    password_hashers:
+        Symfony\Component\Security\Core\User\InMemoryUser: 'auto'
+
     providers:
         in_memory:
             memory: ~
+        api_users:
+            memory:
+                users:
+                    mobile:
+                        password: '%env(API_PASSWORD_HASH)%'
+                        roles: [ROLE_API]
 
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
+        # Credentials in, token out. Lexik's handlers turn a successful check into
+        # the JSON `{"token": ...}` body the app expects, and a failure into 401.
+        login:
+            pattern: ^/api/login_check
+            stateless: true
+            provider: api_users
+            json_login:
+                check_path: api_login_check
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: api_users
+            jwt: ~
         main:
             lazy: true
             provider: in_memory
 
     access_control:
+        # The login endpoint has to be reachable without the token it hands out.
+        - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
+        - { path: ^/api, roles: ROLE_API }
         - { path: ^/, roles: PUBLIC_ACCESS }

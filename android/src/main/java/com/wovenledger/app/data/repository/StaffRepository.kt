@@ -67,8 +67,9 @@ class StaffRepository @Inject constructor(
         }
 
         // Upserting alone left staff removed on the portal on the phone for good.
+        // Staff are read-only on mobile, so there is never a locally queued one here.
         val ids = dtos.map { it.id.toLong() }
-        if (ids.isEmpty()) dao.deleteAll() else dao.deleteMissing(ids)
+        if (ids.isEmpty()) dao.deleteSynced() else dao.deleteMissing(ids)
     }
 
     /** The API sends 'daily' / 'piece'; anything unexpected falls back to daily. */

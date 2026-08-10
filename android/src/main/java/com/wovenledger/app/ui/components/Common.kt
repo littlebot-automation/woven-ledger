@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
@@ -85,8 +86,24 @@ fun MoneyText(
     )
 }
 
+/**
+ * A document's number, or an honest admission that it does not have one yet.
+ *
+ * `SI-0015` comes from a counter in Settings that the server consumes inside a
+ * transaction, and `no` is unique on the document tables — so a phone that invented a
+ * number while offline would collide with the next phone that did the same, and the
+ * second upload would die on a constraint violation nobody could act on. A document
+ * written with no signal therefore has no number until it uploads, and this says so
+ * rather than showing a guess or an empty gap.
+ */
 @Composable
 fun DocumentNumberText(number: String, modifier: Modifier = Modifier) {
+    if (number.isBlank()) {
+        PendingBadge(modifier)
+
+        return
+    }
+
     Text(
         text = number,
         modifier = modifier,
@@ -95,6 +112,34 @@ fun DocumentNumberText(number: String, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.primary,
     )
+}
+
+/** Where the document number will go once the server has issued one. */
+@Composable
+fun PendingBadge(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CloudUpload,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Spacer(Modifier.size(6.dp))
+            Text(
+                text = "Pending upload",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+        }
+    }
 }
 
 @Composable

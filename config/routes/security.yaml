@@ -1,3 +1,10 @@
 _security_logout:
     resource: security.route_loader.logout
     type: service
+
+# No controller: the `login` firewall intercepts this path and answers it. The
+# route exists so the firewall's check_path can name it, and so a GET is a 405
+# rather than a 404.
+api_login_check:
+    path: /api/login_check
+    methods: [POST]

@@ -27,11 +27,13 @@ fun fieldErrorsOf(cause: Throwable, gson: Gson): Map<String, String> {
 /**
  * What to say when the write failed for a reason no field can carry.
  *
- * Writes are online-only, so "nothing was saved" is the honest ending: there is no
- * queue that will retry this later.
+ * A lost connection no longer reaches here: it is queued and reported as such. What is
+ * left is the server answering and refusing, which is never queued — a rejection would
+ * be repeated identically on every retry — so "nothing was saved" is still the honest
+ * ending for these.
  */
 fun failureMessage(cause: Throwable): String = when {
     cause is HttpException && cause.code() == 404 -> "That record is no longer on the server."
     cause is HttpException -> "The server refused the save (${cause.code()}). Nothing was saved."
-    else -> "Could not reach the server. Nothing was saved."
+    else -> "The save could not be completed. Nothing was saved."
 }
