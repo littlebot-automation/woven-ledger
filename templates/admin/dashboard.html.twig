@@ -62,127 +62,181 @@
     </div>
   </div>
 
-  <h2 class="h5 mb-2">Low Stock</h2>
-  <table class="table datagrid{{ data.lowStockRows is empty ? ' datagrid-empty' : '' }}">
-    <thead>
-      <tr>
-        <th>Item</th>
-        <th>Plant</th>
-        <th class="text-end">On Hand</th>
-        <th class="text-end">Threshold</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in data.lowStockRows %}
-        <tr>
-          <td>{{ row.item.name }}</td>
-          <td>{{ row.plant.name }}</td>
-          <td class="text-end{{ row.qty <= row.threshold ? ' text-danger fw-bold' : '' }}">
-            {{ row.qty|qty }} {{ row.item.unit }}
-          </td>
-          <td class="text-end">{{ row.threshold|qty }}</td>
-        </tr>
-      {% else %}
-        <tr class="no-results"><td colspan="100">Every item is above its threshold.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="row g-3 mb-4">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">Low Stock</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table datagrid mb-0{{ data.lowStockRows is empty ? ' datagrid-empty' : '' }}">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Plant</th>
+                  <th class="text-end">On Hand</th>
+                  <th class="text-end">Threshold</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in data.lowStockRows %}
+                  <tr>
+                    <td>{{ row.item.name }}</td>
+                    <td>{{ row.plant.name }}</td>
+                    <td class="text-end{{ row.qty <= row.threshold ? ' text-danger fw-bold' : '' }}">
+                      {{ row.qty|qty }} {{ row.item.unit }}
+                    </td>
+                    <td class="text-end">{{ row.threshold|qty }}</td>
+                  </tr>
+                {% else %}
+                  <tr class="no-results"><td colspan="100">Every item is above its threshold.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  <h2 class="h5 mb-2">Top Outstanding Parties</h2>
-  <table class="table datagrid{{ data.topOutstanding is empty ? ' datagrid-empty' : '' }}">
-    <thead>
-      <tr><th>Party</th><th>Type</th><th class="text-end">Balance</th></tr>
-    </thead>
-    <tbody>
-      {% for row in data.topOutstanding %}
-        <tr>
-          <td>{{ row.party.name }}</td>
-          <td>{{ row.party.typeLabel }}</td>
-          <td class="text-end{{ row.balance > 0 ? ' text-success' : ' text-danger' }}">
-            {{ row.balance|abs|inr }} {{ row.balance > 0 ? 'to receive' : 'to pay' }}
-          </td>
-        </tr>
-      {% else %}
-        <tr class="no-results"><td colspan="100">No outstanding balances.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">Top Outstanding Parties</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table datagrid mb-0{{ data.topOutstanding is empty ? ' datagrid-empty' : '' }}">
+              <thead>
+                <tr><th>Party</th><th>Type</th><th class="text-end">Balance</th></tr>
+              </thead>
+              <tbody>
+                {% for row in data.topOutstanding %}
+                  <tr>
+                    <td>{{ row.party.name }}</td>
+                    <td>{{ row.party.typeLabel }}</td>
+                    <td class="text-end{{ row.balance > 0 ? ' text-success' : ' text-danger' }}">
+                      {{ row.balance|abs|inr }} {{ row.balance > 0 ? 'to receive' : 'to pay' }}
+                    </td>
+                  </tr>
+                {% else %}
+                  <tr class="no-results"><td colspan="100">No outstanding balances.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <h2 class="h5 mb-2">Recent Sales Invoices</h2>
-  <table class="table datagrid{{ data.recentSales is empty ? ' datagrid-empty' : '' }}">
-    <thead>
-      <tr><th>Invoice</th><th>Date</th><th>Buyer</th><th class="text-end">Total</th></tr>
-    </thead>
-    <tbody>
-      {% for inv in data.recentSales %}
-        <tr>
-          <td>{{ inv.no }}</td>
-          <td>{{ inv.date|date('d M Y') }}</td>
-          <td>{{ inv.party ? inv.party.name : '—' }}</td>
-          <td class="text-end">{{ inv.total|inr }}</td>
-        </tr>
-      {% else %}
-        <tr class="no-results"><td colspan="100">No invoices yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="row g-3 mb-4">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">Recent Sales Invoices</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table datagrid mb-0{{ data.recentSales is empty ? ' datagrid-empty' : '' }}">
+              <thead>
+                <tr><th>Invoice</th><th>Date</th><th>Buyer</th><th class="text-end">Total</th></tr>
+              </thead>
+              <tbody>
+                {% for inv in data.recentSales %}
+                  <tr>
+                    <td>{{ inv.no }}</td>
+                    <td>{{ inv.date|date('d M Y') }}</td>
+                    <td>{{ inv.party ? inv.party.name : '—' }}</td>
+                    <td class="text-end">{{ inv.total|inr }}</td>
+                  </tr>
+                {% else %}
+                  <tr class="no-results"><td colspan="100">No invoices yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  <h2 class="h5 mb-2">Recent Purchase Bills</h2>
-  <table class="table datagrid{{ data.recentPurchases is empty ? ' datagrid-empty' : '' }}">
-    <thead>
-      <tr><th>Bill</th><th>Date</th><th>Supplier</th><th class="text-end">Total</th></tr>
-    </thead>
-    <tbody>
-      {% for bill in data.recentPurchases %}
-        <tr>
-          <td>{{ bill.no }}</td>
-          <td>{{ bill.date|date('d M Y') }}</td>
-          <td>{{ bill.party ? bill.party.name : '—' }}</td>
-          <td class="text-end">{{ bill.total|inr }}</td>
-        </tr>
-      {% else %}
-        <tr class="no-results"><td colspan="100">No bills yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">Recent Purchase Bills</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table datagrid mb-0{{ data.recentPurchases is empty ? ' datagrid-empty' : '' }}">
+              <thead>
+                <tr><th>Bill</th><th>Date</th><th>Supplier</th><th class="text-end">Total</th></tr>
+              </thead>
+              <tbody>
+                {% for bill in data.recentPurchases %}
+                  <tr>
+                    <td>{{ bill.no }}</td>
+                    <td>{{ bill.date|date('d M Y') }}</td>
+                    <td>{{ bill.party ? bill.party.name : '—' }}</td>
+                    <td class="text-end">{{ bill.total|inr }}</td>
+                  </tr>
+                {% else %}
+                  <tr class="no-results"><td colspan="100">No bills yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <h2 class="h5 mb-2">Recent Receipts</h2>
-  <table class="table datagrid{{ data.recentReceipts is empty ? ' datagrid-empty' : '' }}">
-    <thead>
-      <tr><th>Receipt</th><th>Date</th><th>From</th><th>Mode</th><th class="text-end">Amount</th></tr>
-    </thead>
-    <tbody>
-      {% for receipt in data.recentReceipts %}
-        <tr>
-          <td>{{ receipt.no }}</td>
-          <td>{{ receipt.date|date('d M Y') }}</td>
-          <td>{{ receipt.party ? receipt.party.name : '—' }}</td>
-          <td>{{ receipt.mode }}</td>
-          <td class="text-end">{{ receipt.amount|inr }}</td>
-        </tr>
-      {% else %}
-        <tr class="no-results"><td colspan="100">No receipts yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">Recent Receipts</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table datagrid mb-0{{ data.recentReceipts is empty ? ' datagrid-empty' : '' }}">
+              <thead>
+                <tr><th>Receipt</th><th>Date</th><th>From</th><th>Mode</th><th class="text-end">Amount</th></tr>
+              </thead>
+              <tbody>
+                {% for receipt in data.recentReceipts %}
+                  <tr>
+                    <td>{{ receipt.no }}</td>
+                    <td>{{ receipt.date|date('d M Y') }}</td>
+                    <td>{{ receipt.party ? receipt.party.name : '—' }}</td>
+                    <td>{{ receipt.mode }}</td>
+                    <td class="text-end">{{ receipt.amount|inr }}</td>
+                  </tr>
+                {% else %}
+                  <tr class="no-results"><td colspan="100">No receipts yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  <h2 class="h5 mb-2">Recent Payments</h2>
-  <table class="table datagrid{{ data.recentPayments is empty ? ' datagrid-empty' : '' }}">
-    <thead>
-      <tr><th>Payment</th><th>Date</th><th>Paid To</th><th>Mode</th><th class="text-end">Amount</th></tr>
-    </thead>
-    <tbody>
-      {% for payment in data.recentPayments %}
-        <tr>
-          <td>{{ payment.no }}</td>
-          <td>{{ payment.date|date('d M Y') }}</td>
-          <td>{{ payment.payeeName ?: '—' }}</td>
-          <td>{{ payment.mode }}</td>
-          <td class="text-end">{{ payment.amount|inr }}</td>
-        </tr>
-      {% else %}
-        <tr class="no-results"><td colspan="100">No payments yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">Recent Payments</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table datagrid mb-0{{ data.recentPayments is empty ? ' datagrid-empty' : '' }}">
+              <thead>
+                <tr><th>Payment</th><th>Date</th><th>Paid To</th><th>Mode</th><th class="text-end">Amount</th></tr>
+              </thead>
+              <tbody>
+                {% for payment in data.recentPayments %}
+                  <tr>
+                    <td>{{ payment.no }}</td>
+                    <td>{{ payment.date|date('d M Y') }}</td>
+                    <td>{{ payment.payeeName ?: '—' }}</td>
+                    <td>{{ payment.mode }}</td>
+                    <td class="text-end">{{ payment.amount|inr }}</td>
+                  </tr>
+                {% else %}
+                  <tr class="no-results"><td colspan="100">No payments yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock %}

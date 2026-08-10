@@ -63,13 +63,30 @@ Sales, purchases and cash movement are volume, not health, so they stay neutral.
 
 ### 2. List sections adopt the datagrid treatment
 
-The four list sections — Low Stock, Top Outstanding Parties, Recent Sales
-Invoices, Recent Purchase Bills — each get:
+Below the summary cards the page is three rows of paired boxes, each pair
+naturally two of a kind:
 
-- `<h2 class="h5 mb-2">` for the section heading.
-- `<table class="table datagrid{{ rows is empty ? ' datagrid-empty' : '' }}">`.
+| Row | Left | Right |
+|-----|------|-------|
+| 1 | Low Stock | Top Outstanding Parties |
+| 2 | Recent Sales Invoices | Recent Purchase Bills |
+| 3 | Recent Receipts | Recent Payments |
+
+Every pair uses the identical shell — a `row g-3` of two `col-lg-6` cards, each
+`card h-100` titled by its `card-header`, holding a
+`card-body p-0 > table-responsive > table table datagrid mb-0`. No section keeps
+an `h5` heading; the `card-header` carries every title.
+
+Within the tables:
+
 - `class="text-end"` on every amount and quantity column, in both `<th>` and
   `<td>`.
+- `datagrid-empty` on the table and a `no-results` row when the section is
+  empty.
+
+The uniform shell is the point. Earlier drafts mixed full-width bare tables,
+half-width bare tables and boxes on one page, which made the differences look
+like meaning rather than accident.
 
 ### 3. Empty states move inside the table
 
@@ -99,9 +116,54 @@ which the template never rendered — the queries ran on every dashboard load an
 the results were discarded. Both are now rendered as two further sections in the
 same datagrid treatment, closing that gap.
 
-Columns are `No | Date | From/Paid To | Mode | Amount`. `Mode` is included
-because cash-versus-bank is the distinguishing field of a voucher, and both
-entities carry it.
+Unlike the four sections above them, these two are each boxed in a `card` whose
+title lives in a `card-header`, with the data as an ordinary table inside. The
+two boxes sit side by side, each taking half the width:
+
+```twig
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">Recent Receipts</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table datagrid mb-0">…</table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">…Recent Payments…</div>
+</div>
+```
+
+The split is `col-lg-6`, not a plain `col-6`: five columns of voucher data at
+half a phone's width is unreadable, so the boxes stack full-width below the `lg`
+breakpoint and sit half-and-half above it.
+
+`table-responsive` wraps each table because a five-column table in a half-width
+box overflows at middling viewport widths. It confines the horizontal scroll to
+the box instead of letting it push the whole page sideways.
+
+`h-100` keeps the two boxes the same height when one holds fewer rows than the
+other; without it the shorter box stops early and the row looks broken.
+
+Columns are `No | Date | From/Paid To | Mode | Amount`, amount right-aligned.
+
+Two classes carry weight here. `p-0` on the body removes the card's padding so
+the table meets the box edges instead of floating inside it, and `mb-0` on the
+table removes Bootstrap's default bottom margin, which would otherwise leave a
+gap between the last row and the card border. Because these sections keep their
+table, they also keep the `no-results` empty-state row rather than needing a
+separate empty component.
+
+Since the `card-header` carries the title, these two sections have no `h5`
+heading above them, unlike sections 2–4.
+
+`Mode` is surfaced because cash-versus-bank is the distinguishing field of a
+voucher, and both entities carry it.
+
+Every class used here is verified present in EasyAdmin's bundled
+`public/bundles/easyadmin/app.*.css`. No stylesheet is added.
 
 Payments may be made to either a `Party` or a `Staff` member. The template uses
 the existing `Payment::getPayeeName()` accessor, which already collapses that
@@ -116,8 +178,8 @@ are volume, not health.
 ## Verification
 
 - `bin/console lint:twig templates/admin/dashboard.html.twig` passes.
-- The rendered `/admin` page shows the card grid and six styled tables, with no
-  bare browser-default table remaining.
+- The rendered `/admin` page shows the summary card grid, four styled tables and
+  two boxed voucher tables, with no bare browser-default table remaining.
 - Empty states render as `no-results` rows within their tables.
 - No new file is added under `public/css` or `public/js`, and no
   `templates/bundles/EasyAdminBundle` override is created.
