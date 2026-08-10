@@ -92,16 +92,31 @@ In the Low Stock table, the on-hand quantity gets `text-danger fw-bold` when it
 is at or below the row's threshold, matching how the stock report in
 `reports.html.twig` flags the same condition.
 
-## Out of scope
+### 5. Recent Receipts and Recent Payments
 
-`dashboardData()` also computes `recentReceipts` and `recentPayments`, which the
-template has never rendered. That is a content gap, not a styling one, and is
-deliberately excluded from this change. It is worth raising separately.
+`dashboardData()` has always computed `recentReceipts` and `recentPayments`,
+which the template never rendered — the queries ran on every dashboard load and
+the results were discarded. Both are now rendered as two further sections in the
+same datagrid treatment, closing that gap.
+
+Columns are `No | Date | From/Paid To | Mode | Amount`. `Mode` is included
+because cash-versus-bank is the distinguishing field of a voucher, and both
+entities carry it.
+
+Payments may be made to either a `Party` or a `Staff` member. The template uses
+the existing `Payment::getPayeeName()` accessor, which already collapses that
+branch into a single "Paid To" value, rather than reproducing the conditional in
+Twig. It returns an empty string when neither is set, so the template falls back
+to an em dash via `?:`.
+
+Amounts stay neutral, consistent with the Recent Sales and Recent Purchase
+tables and with the reasoning behind the neutral Cash In / Cash Out cards: these
+are volume, not health.
 
 ## Verification
 
 - `bin/console lint:twig templates/admin/dashboard.html.twig` passes.
-- The rendered `/admin` page shows the card grid and four styled tables, with no
+- The rendered `/admin` page shows the card grid and six styled tables, with no
   bare browser-default table remaining.
 - Empty states render as `no-results` rows within their tables.
 - No new file is added under `public/css` or `public/js`, and no

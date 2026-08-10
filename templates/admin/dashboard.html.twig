@@ -145,4 +145,44 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <h2 class="h5 mb-2">Recent Receipts</h2>
+  <table class="table datagrid{{ data.recentReceipts is empty ? ' datagrid-empty' : '' }}">
+    <thead>
+      <tr><th>Receipt</th><th>Date</th><th>From</th><th>Mode</th><th class="text-end">Amount</th></tr>
+    </thead>
+    <tbody>
+      {% for receipt in data.recentReceipts %}
+        <tr>
+          <td>{{ receipt.no }}</td>
+          <td>{{ receipt.date|date('d M Y') }}</td>
+          <td>{{ receipt.party ? receipt.party.name : '—' }}</td>
+          <td>{{ receipt.mode }}</td>
+          <td class="text-end">{{ receipt.amount|inr }}</td>
+        </tr>
+      {% else %}
+        <tr class="no-results"><td colspan="100">No receipts yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2 class="h5 mb-2">Recent Payments</h2>
+  <table class="table datagrid{{ data.recentPayments is empty ? ' datagrid-empty' : '' }}">
+    <thead>
+      <tr><th>Payment</th><th>Date</th><th>Paid To</th><th>Mode</th><th class="text-end">Amount</th></tr>
+    </thead>
+    <tbody>
+      {% for payment in data.recentPayments %}
+        <tr>
+          <td>{{ payment.no }}</td>
+          <td>{{ payment.date|date('d M Y') }}</td>
+          <td>{{ payment.payeeName ?: '—' }}</td>
+          <td>{{ payment.mode }}</td>
+          <td class="text-end">{{ payment.amount|inr }}</td>
+        </tr>
+      {% else %}
+        <tr class="no-results"><td colspan="100">No payments yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endblock %}
